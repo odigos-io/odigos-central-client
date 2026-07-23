@@ -723,9 +723,10 @@ func matchBrace(s string, openIdx int) int {
 		if inTpl {
 			continue
 		}
-		if c == '{' {
+		switch c {
+		case '{':
 			depth++
-		} else if c == '}' {
+		case '}':
 			depth--
 			if depth == 0 {
 				return i

@@ -92,7 +92,7 @@ type SourceContainer struct {
 	Instrumented           bool   `json:"instrumented"`
 	Language               string `json:"language"`
 	OtelDistroName         string `json:"otelDistroName"`
-	Overriden              bool   `json:"overriden"`
+	Overridden             bool   `json:"overriden"`
 	RuntimeVersion         string `json:"runtimeVersion"`
 }
 

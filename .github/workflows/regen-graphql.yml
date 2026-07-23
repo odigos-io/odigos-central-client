@@ -20,10 +20,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout central-client
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Checkout odigos-enterprise (graphql subtree only)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: odigos-io/odigos-enterprise
           ref: ${{ github.event.client_payload.sha || inputs.enterprise_ref || 'main' }}
@@ -31,7 +31,7 @@ jobs:
           path: _enterprise
           sparse-checkout: central-ui/src/graphql
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
 
@@ -58,7 +58,7 @@ jobs:
 
       - name: Open PR only if the generated files changed
         if: steps.diff.outputs.changed == 'true'
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.CENTRAL_CLIENT_PR_TOKEN }}
           add-paths: operations/*.go

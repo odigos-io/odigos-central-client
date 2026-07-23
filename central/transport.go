@@ -64,7 +64,7 @@ func toGraphQLError(op string, errs []graphqlError) *GraphQLError {
 		if len(e.Locations) > 0 {
 			locs = make([]GraphQLErrorLocation, len(e.Locations))
 			for j, l := range e.Locations {
-				locs[j] = GraphQLErrorLocation{Line: l.Line, Column: l.Column}
+				locs[j] = GraphQLErrorLocation(l)
 			}
 		}
 		details[i] = GraphQLErrorDetail{
@@ -111,7 +111,7 @@ func (t *transport) execute(ctx context.Context, opName string, body graphQLRequ
 	if err != nil {
 		return nil, fmt.Errorf("execute %q: %w", opName, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBytes, err := io.ReadAll(resp.Body)
 	if err != nil {

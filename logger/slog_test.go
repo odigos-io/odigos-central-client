@@ -108,9 +108,11 @@ func TestSlogLogger_EmptyMessage(t *testing.T) {
 	l.Error(context.Background(), "")
 }
 
+type ctxKey string
+
 func TestSlogLogger_WithCustomContext(t *testing.T) {
 	l := NewSlogLogger()
-	ctx := context.WithValue(context.Background(), "traceID", "abc-123")
+	ctx := context.WithValue(context.Background(), ctxKey("traceID"), "abc-123")
 
 	// Should pass context through without panicking
 	l.Info(ctx, "with trace context", "traceID", "abc-123")
