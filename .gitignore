@@ -1,0 +1,42 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+coverage.html
+coverage.txt
+
+# Go workspace (optional multi-module layout)
+go.work
+go.work.sum
+
+# Dependency directories (vendoring)
+vendor/
+
+# Build output
+/bin/
+/dist/
+/build/
+
+# IDE / editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env files with secrets (keep .env.example tracked if you use one)
+.env
+.env.local
+*.pem
