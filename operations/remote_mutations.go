@@ -17,6 +17,79 @@ var CREATE_ACTION = Operation{
 	Name: "CREATE_ACTION",
 	Variants: map[platform.Type]map[version.Version]string{
 		platform.K8s: {
+			version.MustParse("v1.33"): `mutation CreateAction($action: ActionInput!) {
+    createAction(action: $action) {
+      id
+      type
+      name
+      notes
+      disabled
+      signals
+      fields {
+        collectContainerAttributes
+        collectReplicaSetAttributes
+        collectWorkloadId
+        collectClusterId
+        labelsAttributes {
+          labelKey
+          attributeKey
+          from
+          fromSources
+        }
+        annotationsAttributes {
+          annotationKey
+          attributeKey
+          from
+          fromSources
+        }
+        clusterAttributes {
+          attributeName
+          attributeStringValue
+        }
+        overwriteExistingValues
+        attributeNamesToDelete
+        renames
+        piiCategories
+        customFormatMaskings {
+          lookupKey
+          dataFormat
+        }
+        customRegexMaskings {
+          regex
+        }
+        extractAttribute {
+          extractions {
+            targetAttributeName
+            lookupKey
+            dataFormat
+            regex
+          }
+        }
+        urlTemplatizationRulesGroups {
+          filterK8sNamespace
+          filterK8sWorkloadKind
+          filterK8sWorkloadName
+          filterProgrammingLanguage
+          notes
+          workloadFilters {
+            kind
+            name
+          }
+          templatizationRules {
+            template
+            notes
+            examples
+          }
+        }
+      }
+      conditions {
+        status
+        type
+        reason
+        message
+      }
+    }
+  }`,
 			version.MustParse("v1.29"): `mutation CreateAction($action: ActionInput!) {
     createAction(action: $action) {
       id
@@ -219,7 +292,7 @@ var CREATE_COST_REDUCTION_RULE = Operation{
 	Name: "CREATE_COST_REDUCTION_RULE",
 	Variants: map[platform.Type]map[version.Version]string{
 		platform.K8s: {
-			version.MustParse("v1.24"): `mutation CreateCostReductionRule($samplingId: ID!, $rule: CostReductionRuleInput!) {
+			version.MustParse("v1.26"): `mutation CreateCostReductionRule($samplingId: ID!, $rule: CostReductionRuleInput!) {
     createCostReductionRule(samplingId: $samplingId, rule: $rule) {
       ruleId
       name
@@ -316,13 +389,7 @@ var CREATE_DESTINATION = Operation{
           }
         }
       }
-      conditions {
-        status
-        type
-        reason
-        message
-
-      }
+      conditions
     }
   }`,
 		},
@@ -336,7 +403,7 @@ var CREATE_HIGHLY_RELEVANT_OPERATION_RULE = Operation{
 	Name: "CREATE_HIGHLY_RELEVANT_OPERATION_RULE",
 	Variants: map[platform.Type]map[version.Version]string{
 		platform.K8s: {
-			version.MustParse("v1.24"): `mutation CreateHighlyRelevantOperationRule($samplingId: ID!, $rule: HighlyRelevantOperationRuleInput!) {
+			version.MustParse("v1.26"): `mutation CreateHighlyRelevantOperationRule($samplingId: ID!, $rule: HighlyRelevantOperationRuleInput!) {
     createHighlyRelevantOperationRule(samplingId: $samplingId, rule: $rule) {
       ruleId
       name
@@ -368,6 +435,67 @@ var CREATE_INSTRUMENTATION_RULE = Operation{
 	Name: "CREATE_INSTRUMENTATION_RULE",
 	Variants: map[platform.Type]map[version.Version]string{
 		platform.K8s: {
+			version.MustParse("v1.33"): `mutation CreateInstrumentationRule($instrumentationRule: InstrumentationRuleInput!) {
+    createInstrumentationRule(instrumentationRule: $instrumentationRule) {
+      type
+      ruleId
+      ruleName
+      notes
+      disabled
+      mutable
+      profileName
+      sourcesScopes { sources { namespace kind name }
+  namespaces
+  languages }
+      payloadCollection {
+        httpRequest {
+          mimeTypes
+          maxPayloadLength
+          dropPartialPayloads
+        }
+        httpResponse {
+          mimeTypes
+          maxPayloadLength
+          dropPartialPayloads
+        }
+        dbQuery {
+          maxPayloadLength
+          dropPartialPayloads
+        }
+        messaging {
+          maxPayloadLength
+          dropPartialPayloads
+        }
+      }
+      codeAttributes {
+        column
+        filePath
+        function
+        lineNumber
+        namespace
+        stacktrace
+      }
+      headersCollection {
+        headerKeys
+      }
+      customInstrumentations {
+        golang {
+          packageName
+          functionName
+          receiverName
+          receiverMethodName
+        }
+        java {
+          methodName
+          className
+        }
+        php {
+          className
+          functionName
+        }
+      }
+    }
+  }`,
 			version.MustParse("v1.28"): `mutation CreateInstrumentationRule($instrumentationRule: InstrumentationRuleInput!) {
     createInstrumentationRule(instrumentationRule: $instrumentationRule) {
       type
@@ -490,7 +618,25 @@ var CREATE_NOISY_OPERATION_RULE = Operation{
 	Name: "CREATE_NOISY_OPERATION_RULE",
 	Variants: map[platform.Type]map[version.Version]string{
 		platform.K8s: {
-			version.MustParse("v1.24"): `mutation CreateNoisyOperationRule($samplingId: ID!, $rule: NoisyOperationRuleInput!) {
+			version.MustParse("v1.32"): `mutation CreateNoisyOperationRule($samplingId: ID!, $rule: NoisyOperationRuleInput!) {
+    createNoisyOperationRule(samplingId: $samplingId, rule: $rule) {
+      ruleId
+      name
+      disabled
+      sourceScopes {
+        sources { namespace kind name }
+        namespaces
+        languages
+      }
+      operation {
+        httpServer { route routePrefix method queryParams { name valueExact } }
+        httpClient { serverAddress templatedPath templatedPathPrefix method }
+      }
+      percentageAtMost
+      notes
+    }
+  }`,
+			version.MustParse("v1.26"): `mutation CreateNoisyOperationRule($samplingId: ID!, $rule: NoisyOperationRuleInput!) {
     createNoisyOperationRule(samplingId: $samplingId, rule: $rule) {
       ruleId
       name
@@ -669,11 +815,6 @@ var PERSIST_SOURCES = Operation{
     persistK8sSources(sources: $sources)
   }`,
 		},
-		platform.Vm: {
-			version.MustParse("v0.1"): `mutation PersistSources($sources: [PersistNamespaceSourceInput!]!) {
-    persistVmSources(sources: $sources)
-  }`,
-		},
 	},
 }
 
@@ -760,6 +901,79 @@ var UPDATE_ACTION = Operation{
 	Name: "UPDATE_ACTION",
 	Variants: map[platform.Type]map[version.Version]string{
 		platform.K8s: {
+			version.MustParse("v1.33"): `mutation UpdateAction($id: ID!, $action: ActionInput!) {
+    updateAction(id: $id, action: $action) {
+      id
+      type
+      name
+      notes
+      disabled
+      signals
+      fields {
+        collectContainerAttributes
+        collectReplicaSetAttributes
+        collectWorkloadId
+        collectClusterId
+        labelsAttributes {
+          labelKey
+          attributeKey
+          from
+          fromSources
+        }
+        annotationsAttributes {
+          annotationKey
+          attributeKey
+          from
+          fromSources
+        }
+        clusterAttributes {
+          attributeName
+          attributeStringValue
+        }
+        overwriteExistingValues
+        attributeNamesToDelete
+        renames
+        piiCategories
+        customFormatMaskings {
+          lookupKey
+          dataFormat
+        }
+        customRegexMaskings {
+          regex
+        }
+        extractAttribute {
+          extractions {
+            targetAttributeName
+            lookupKey
+            dataFormat
+            regex
+          }
+        }
+        urlTemplatizationRulesGroups {
+          filterK8sNamespace
+          filterK8sWorkloadKind
+          filterK8sWorkloadName
+          filterProgrammingLanguage
+          notes
+          workloadFilters {
+            kind
+            name
+          }
+          templatizationRules {
+            template
+            notes
+            examples
+          }
+        }
+      }
+      conditions {
+        status
+        type
+        reason
+        message
+      }
+    }
+  }`,
 			version.MustParse("v1.29"): `mutation UpdateAction($id: ID!, $action: ActionInput!) {
     updateAction(id: $id, action: $action) {
       id
@@ -962,7 +1176,7 @@ var UPDATE_COST_REDUCTION_RULE = Operation{
 	Name: "UPDATE_COST_REDUCTION_RULE",
 	Variants: map[platform.Type]map[version.Version]string{
 		platform.K8s: {
-			version.MustParse("v1.24"): `mutation UpdateCostReductionRule($samplingId: ID!, $ruleId: ID!, $rule: CostReductionRuleInput!) {
+			version.MustParse("v1.26"): `mutation UpdateCostReductionRule($samplingId: ID!, $ruleId: ID!, $rule: CostReductionRuleInput!) {
     updateCostReductionRule(samplingId: $samplingId, ruleId: $ruleId, rule: $rule) {
       ruleId
       name
@@ -1038,7 +1252,7 @@ var UPDATE_HIGHLY_RELEVANT_OPERATION_RULE = Operation{
 	Name: "UPDATE_HIGHLY_RELEVANT_OPERATION_RULE",
 	Variants: map[platform.Type]map[version.Version]string{
 		platform.K8s: {
-			version.MustParse("v1.24"): `mutation UpdateHighlyRelevantOperationRule($samplingId: ID!, $ruleId: ID!, $rule: HighlyRelevantOperationRuleInput!) {
+			version.MustParse("v1.26"): `mutation UpdateHighlyRelevantOperationRule($samplingId: ID!, $ruleId: ID!, $rule: HighlyRelevantOperationRuleInput!) {
     updateHighlyRelevantOperationRule(samplingId: $samplingId, ruleId: $ruleId, rule: $rule) {
       ruleId
       name
@@ -1070,6 +1284,67 @@ var UPDATE_INSTURMENTATION_RULE = Operation{
 	Name: "UPDATE_INSTURMENTATION_RULE",
 	Variants: map[platform.Type]map[version.Version]string{
 		platform.K8s: {
+			version.MustParse("v1.33"): `mutation UpdateInstrumentationRule($ruleId: ID!, $instrumentationRule: InstrumentationRuleInput!) {
+    updateInstrumentationRule(ruleId: $ruleId, instrumentationRule: $instrumentationRule) {
+      type
+      ruleId
+      ruleName
+      notes
+      disabled
+      mutable
+      profileName
+      sourcesScopes { sources { namespace kind name }
+  namespaces
+  languages }
+      payloadCollection {
+        httpRequest {
+          mimeTypes
+          maxPayloadLength
+          dropPartialPayloads
+        }
+        httpResponse {
+          mimeTypes
+          maxPayloadLength
+          dropPartialPayloads
+        }
+        dbQuery {
+          maxPayloadLength
+          dropPartialPayloads
+        }
+        messaging {
+          maxPayloadLength
+          dropPartialPayloads
+        }
+      }
+      codeAttributes {
+        column
+        filePath
+        function
+        lineNumber
+        namespace
+        stacktrace
+      }
+      headersCollection {
+        headerKeys
+      }
+      customInstrumentations {
+        golang {
+          packageName
+          functionName
+          receiverName
+          receiverMethodName
+        }
+        java {
+          methodName
+          className
+        }
+        php {
+          className
+          functionName
+        }
+      }
+    }
+  }`,
 			version.MustParse("v1.28"): `mutation UpdateInstrumentationRule($ruleId: ID!, $instrumentationRule: InstrumentationRuleInput!) {
     updateInstrumentationRule(ruleId: $ruleId, instrumentationRule: $instrumentationRule) {
       type
@@ -1192,7 +1467,7 @@ var UPDATE_LOCAL_UI_CONFIG = Operation{
 	Name: "UPDATE_LOCAL_UI_CONFIG",
 	Variants: map[platform.Type]map[version.Version]string{
 		platform.K8s: {
-			version.MustParse("v1.20"): `mutation UpdateLocalUiConfig($config: LocalUiConfigInput!) {
+			version.MustParse("v1.24"): `mutation UpdateLocalUiConfig($config: LocalUiConfigInput!) {
     updateLocalUiConfig(config: $config)
   }`,
 		},
@@ -1220,7 +1495,25 @@ var UPDATE_NOISY_OPERATION_RULE = Operation{
 	Name: "UPDATE_NOISY_OPERATION_RULE",
 	Variants: map[platform.Type]map[version.Version]string{
 		platform.K8s: {
-			version.MustParse("v1.24"): `mutation UpdateNoisyOperationRule($samplingId: ID!, $ruleId: ID!, $rule: NoisyOperationRuleInput!) {
+			version.MustParse("v1.32"): `mutation UpdateNoisyOperationRule($samplingId: ID!, $ruleId: ID!, $rule: NoisyOperationRuleInput!) {
+    updateNoisyOperationRule(samplingId: $samplingId, ruleId: $ruleId, rule: $rule) {
+      ruleId
+      name
+      disabled
+      sourceScopes {
+        sources { namespace kind name }
+        namespaces
+        languages
+      }
+      operation {
+        httpServer { route routePrefix method queryParams { name valueExact } }
+        httpClient { serverAddress templatedPath templatedPathPrefix method }
+      }
+      percentageAtMost
+      notes
+    }
+  }`,
+			version.MustParse("v1.26"): `mutation UpdateNoisyOperationRule($samplingId: ID!, $ruleId: ID!, $rule: NoisyOperationRuleInput!) {
     updateNoisyOperationRule(samplingId: $samplingId, ruleId: $ruleId, rule: $rule) {
       ruleId
       name
@@ -1265,11 +1558,6 @@ var UPDATE_SOURCE = Operation{
 		platform.K8s: {
 			version.MustParse("v1.20"): `mutation UpdateK8sActualSource($sourceId: K8sSourceId!, $patchSourceRequest: PatchSourceRequestInput!) {
     updateK8sActualSource(sourceId: $sourceId, patchSourceRequest: $patchSourceRequest)
-  }`,
-		},
-		platform.Vm: {
-			version.MustParse("v0.1"): `mutation UpdateSource($sourceId: SourceId!, $patchSourceRequest: PatchSourceRequestInput!) {
-    updateSource(sourceId: $sourceId, patchSourceRequest: $patchSourceRequest)
   }`,
 		},
 	},

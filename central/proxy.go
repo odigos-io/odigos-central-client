@@ -44,7 +44,7 @@ func (p *ProxyClient) pick(op *operations.Operation) (string, error) {
 
 // GetSources returns every source registered on the cluster.
 func (p *ProxyClient) GetSources(ctx context.Context) ([]types.Source, error) {
-	q, err := p.pick(&operations.GET_SOURCES)
+	q, err := p.pick(&operations.GET_SOURCES_WITH_STATUS)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func (p *ProxyClient) GetSource(ctx context.Context, id types.SourceID) (types.S
 
 // GetNamespaces returns the lite list of cluster namespaces.
 func (p *ProxyClient) GetNamespaces(ctx context.Context) ([]types.K8sActualNamespace, error) {
-	q, err := p.pick(&operations.GET_NAMESPACES)
+	q, err := p.pick(&operations.GET_NAMESPACES_WITH_SOURCES)
 	if err != nil {
 		return nil, err
 	}
@@ -96,21 +96,31 @@ func (p *ProxyClient) GetNamespaces(ctx context.Context) ([]types.K8sActualNames
 }
 
 // GetNamespace returns the detailed view of a single namespace.
+//
+// The Central schema no longer exposes a by-name namespace resolver
+// (k8sActualNamespace(name:)), so this fetches the namespace list (each entry
+// carrying its nested sources) and selects the requested one client-side. When
+// no namespace matches, it returns the zero value with a nil error, preserving
+// the previous behavior where the server resolved a missing name to null.
 func (p *ProxyClient) GetNamespace(ctx context.Context, name string) (types.K8sActualNamespaceDetail, error) {
-	q, err := p.pick(&operations.GET_NAMESPACE)
+	q, err := p.pick(&operations.GET_NAMESPACES_WITH_SOURCES)
 	if err != nil {
 		return types.K8sActualNamespaceDetail{}, err
 	}
 	var data struct {
 		ComputePlatform struct {
-			K8sActualNamespace types.K8sActualNamespaceDetail `json:"k8sActualNamespace"`
+			K8sActualNamespaces []types.K8sActualNamespaceDetail `json:"k8sActualNamespaces"`
 		} `json:"computePlatform"`
 	}
-	vars := map[string]any{"namespaceName": name}
-	if err := p.tx.remoteFetch(ctx, "GetNamespace", p.id, q, vars, &data); err != nil {
+	if err := p.tx.remoteFetch(ctx, "GetNamespace", p.id, q, nil, &data); err != nil {
 		return types.K8sActualNamespaceDetail{}, err
 	}
-	return data.ComputePlatform.K8sActualNamespace, nil
+	for _, ns := range data.ComputePlatform.K8sActualNamespaces {
+		if ns.Name == name {
+			return ns, nil
+		}
+	}
+	return types.K8sActualNamespaceDetail{}, nil
 }
 
 // PersistSources writes a batch of source-selection updates to the proxy.

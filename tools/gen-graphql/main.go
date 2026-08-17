@@ -481,11 +481,11 @@ func (r *resolver) evalExpr(expr string, env map[string]callValue) (string, bool
 	return r.evalOperand(expr, env)
 }
 
-// evalOperand resolves an identifier (parameter or fragment) or an empty
-// string literal.
+// evalOperand resolves an identifier (parameter or fragment) or a quoted
+// string literal (including the empty string).
 func (r *resolver) evalOperand(expr string, env map[string]callValue) (string, bool) {
-	if expr == "''" || expr == `""` {
-		return "", true
+	if s, ok := unquoteJSString(expr); ok {
+		return s, true
 	}
 	if v, ok := env[expr]; ok && !v.isBool {
 		return v.text, true
@@ -494,6 +494,59 @@ func (r *resolver) evalOperand(expr string, env map[string]callValue) (string, b
 		return frag, true
 	}
 	return "", false
+}
+
+// unquoteJSString decodes a single-, double-, or backtick-quoted JavaScript
+// string literal, translating the escape sequences that appear in inlined
+// GraphQL selection-set snippets (\n, \t, \r, \\, and escaped quotes). It
+// returns ok=false when expr is not a single quoted literal (e.g. a bare
+// identifier or text containing an unescaped closing quote).
+func unquoteJSString(expr string) (string, bool) {
+	if len(expr) < 2 {
+		return "", false
+	}
+	q := expr[0]
+	if q != '\'' && q != '"' && q != '`' {
+		return "", false
+	}
+	if expr[len(expr)-1] != q {
+		return "", false
+	}
+	body := expr[1 : len(expr)-1]
+	var b strings.Builder
+	for i := 0; i < len(body); i++ {
+		c := body[i]
+		if c == '\\' && i+1 < len(body) {
+			i++
+			switch body[i] {
+			case 'n':
+				b.WriteByte('\n')
+			case 't':
+				b.WriteByte('\t')
+			case 'r':
+				b.WriteByte('\r')
+			case '\\':
+				b.WriteByte('\\')
+			case '\'':
+				b.WriteByte('\'')
+			case '"':
+				b.WriteByte('"')
+			case '`':
+				b.WriteByte('`')
+			default:
+				b.WriteByte('\\')
+				b.WriteByte(body[i])
+			}
+			continue
+		}
+		// An unescaped matching quote before the end means expr is not one
+		// single literal, so refuse rather than mis-parse.
+		if c == q {
+			return "", false
+		}
+		b.WriteByte(c)
+	}
+	return b.String(), true
 }
 
 // evalCall evaluates a builder call expression such as

@@ -98,7 +98,7 @@ func TestCompatibilityMatrix_PreV120OperationsBaseline(t *testing.T) {
 	// rebased family in the upstream UI; expect Pick(K8s, v1.20) to succeed
 	// for these specific, known-stable operations.
 	stable := []*Operation{
-		&GET_SOURCES, &GET_SOURCE, &GET_NAMESPACES, &GET_NAMESPACE,
+		&GET_SOURCES_WITH_STATUS, &GET_SOURCE, &GET_NAMESPACES_WITH_SOURCES,
 		&PERSIST_SOURCES, &PERSIST_NAMESPACES,
 	}
 	for _, op := range stable {
