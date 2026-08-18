@@ -14,6 +14,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  id-token: write 
 
 jobs:
   regen:
@@ -22,12 +23,25 @@ jobs:
       - name: Checkout central-client
         uses: actions/checkout@v6
 
+      - name: Mint short-lived token for odigos-enterprise
+        id: sts
+        uses: odigos-io/ci-core/sts@main
+        with:
+          pairs: "odigos-io/odigos-enterprise:central-client-ro"
+
+      - name: Mint short-lived token for opening the PR
+        id: sts_pr
+        uses: odigos-io/ci-core/sts@main
+        with:
+          pairs: "odigos-io/odigos-central-client:central-client-pr"
+          output-git-config: false
+
       - name: Checkout odigos-enterprise (graphql subtree only)
         uses: actions/checkout@v6
         with:
           repository: odigos-io/odigos-enterprise
           ref: ${{ github.event.client_payload.sha || inputs.enterprise_ref || 'main' }}
-          token: ${{ secrets.ENTERPRISE_READ_TOKEN }}
+          token: ${{ steps.sts.outputs.GH_TOKEN }}
           path: _enterprise
           sparse-checkout: central-ui/src/graphql
 
@@ -60,7 +74,7 @@ jobs:
         if: steps.diff.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@v8
         with:
-          token: ${{ secrets.CENTRAL_CLIENT_PR_TOKEN }}
+          token: ${{ steps.sts_pr.outputs.GH_TOKEN }}
           add-paths: operations/*.go
           branch: chore/regen-graphql
           delete-branch: true
