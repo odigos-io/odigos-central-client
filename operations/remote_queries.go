@@ -17,6 +17,81 @@ var GET_ACTIONS = Operation{
 	Name: "GET_ACTIONS",
 	Variants: map[platform.Type]map[version.Version]string{
 		platform.K8s: {
+			version.MustParse("v1.33"): `query GetActions {
+      computePlatform {
+        actions {
+          id
+          type
+          name
+          notes
+          disabled
+          signals
+          fields {
+            collectContainerAttributes
+            collectReplicaSetAttributes
+            collectWorkloadId
+            collectClusterId
+            labelsAttributes {
+              labelKey
+              attributeKey
+              from
+              fromSources
+            }
+            annotationsAttributes {
+              annotationKey
+              attributeKey
+              from
+              fromSources
+            }
+            clusterAttributes {
+              attributeName
+              attributeStringValue
+            }
+            overwriteExistingValues
+            attributeNamesToDelete
+            renames
+            piiCategories
+            customFormatMaskings {
+              lookupKey
+              dataFormat
+            }
+            customRegexMaskings {
+              regex
+            }
+            extractAttribute {
+              extractions {
+                targetAttributeName
+                lookupKey
+                dataFormat
+                regex
+              }
+            }
+            urlTemplatizationRulesGroups {
+              filterK8sNamespace
+              filterK8sWorkloadKind
+              filterK8sWorkloadName
+              filterProgrammingLanguage
+              notes
+              workloadFilters {
+                kind
+                name
+              }
+              templatizationRules {
+                template
+                notes
+                examples
+              }
+            }
+          }
+          conditions {
+            status
+            type
+            reason
+            message
+          }
+        }
+      }
+    }`,
 			version.MustParse("v1.29"): `query GetActions {
       computePlatform {
         actions {
@@ -218,6 +293,54 @@ var GET_ACTIONS = Operation{
 	},
 }
 
+// GET_ACTION_TYPES is a remote (cluster-scoped) GraphQL operation. Its document
+// varies by proxy platform type and Odigos version; use Operation.Pick to
+// select the right variant for a given proxy.
+var GET_ACTION_TYPES = Operation{
+	Name: "GET_ACTION_TYPES",
+	Variants: map[platform.Type]map[version.Version]string{
+		platform.K8s: {
+			version.MustParse("v1.33"): `query GetActionTypes {
+    actionTypes {
+      type
+      displayName
+      category
+      subtitle
+      description
+      allowedSignals
+      docsUrl
+      fields {
+        name
+        displayName
+        componentType
+        componentProperties
+        initialValue
+        renderCondition
+      }
+    }
+  }`,
+			version.MustParse("v1.31"): `query GetActionTypes {
+    actionTypes {
+      type
+      displayName
+      
+      description
+      allowedSignals
+      docsUrl
+      fields {
+        name
+        displayName
+        componentType
+        componentProperties
+        initialValue
+        renderCondition
+      }
+    }
+  }`,
+		},
+	},
+}
+
 // GET_COLLECTOR_POD_INFO is a remote (cluster-scoped) GraphQL operation. Its document
 // varies by proxy platform type and Odigos version; use Operation.Pick to
 // select the right variant for a given proxy.
@@ -327,7 +450,7 @@ var GET_CONFIG_YAMLS = Operation{
         }
       }
     }`,
-			version.MustParse("v1.20"): `query GetConfigYamls {
+			version.MustParse("v1.23"): `query GetConfigYamls {
     configYamls {
       name
       displayName
@@ -681,47 +804,6 @@ var GET_DESTINATIONS = Operation{
     }
   }`,
 		},
-		platform.Vm: {
-			version.MustParse("v0.1"): `query GetDestinations {
-    computePlatform {
-      destinations {
-        id
-        name
-        disabled
-        dataStreamNames
-        fields
-        exportedSignals {
-          logs
-          metrics
-          traces
-        }
-        destinationType {
-          type
-          imageUrl
-          displayName
-          supportedSignals {
-            logs {
-              supported
-            }
-            metrics {
-              supported
-            }
-            traces {
-              supported
-            }
-          }
-        }
-        conditions {
-          status
-          type
-          reason
-          message
-
-        }
-      }
-    }
-  }`,
-		},
 	},
 }
 
@@ -733,48 +815,6 @@ var GET_DESTINATION_CATEGORIES = Operation{
 	Variants: map[platform.Type]map[version.Version]string{
 		platform.K8s: {
 			version.MustParse("v1.20"): `query GetDestinationCategories {
-    destinationCategories {
-      categories {
-        name
-        description
-        items {
-          type
-          testConnectionSupported
-          displayName
-          imageUrl
-          supportedSignals {
-            logs {
-              supported
-            }
-            metrics {
-              supported
-            }
-            traces {
-              supported
-            }
-          }
-          fields {
-            name
-            displayName
-            componentType
-            componentProperties
-            secret
-            initialValue
-            renderCondition
-            hideFromReadData
-            customReadDataLabels {
-              condition
-              title
-              value
-            }
-          }
-        }
-      }
-    }
-  }`,
-		},
-		platform.Vm: {
-			version.MustParse("v0.1"): `query GetDestinationCategories {
     destinationCategories {
       categories {
         name
@@ -1180,6 +1220,42 @@ var GET_GATEWAY_INFO = Operation{
 	Name: "GET_GATEWAY_INFO",
 	Variants: map[platform.Type]map[version.Version]string{
 		platform.K8s: {
+			version.MustParse("v1.33"): `query GatewayDeploymentInfo {
+    gatewayDeploymentInfo {
+      status
+      hpa {
+        min
+        max
+        current
+        desired
+        conditions {
+          status
+          type
+          reason
+          message
+
+        }
+      }
+      resources {
+        requests {
+          cpu
+          memory
+        }
+        limits {
+          cpu
+          memory
+        }
+      }
+      imageVersion
+      lastRolloutAt
+      rolloutInProgress
+      manifestYAML
+      configMapYAML
+      throughputTracesBytesPerSec
+      throughputMetricsBytesPerSec
+      throughputLogsBytesPerSec
+    }
+  }`,
 			version.MustParse("v1.20"): `query GatewayDeploymentInfo {
     gatewayDeploymentInfo {
       status
@@ -1254,6 +1330,76 @@ var GET_INSTRUMENTATION_RULES = Operation{
 	Name: "GET_INSTRUMENTATION_RULES",
 	Variants: map[platform.Type]map[version.Version]string{
 		platform.K8s: {
+			version.MustParse("v1.33"): `query GetInstrumentationRules {
+    computePlatform {
+      instrumentationRules {
+        type
+        ruleId
+        ruleName
+        notes
+        disabled
+        mutable
+        profileName
+        sourcesScopes { sources { namespace kind name }
+  namespaces
+  languages }
+        conditions {
+          status
+          type
+          reason
+          message
+
+        }
+        payloadCollection {
+          httpRequest {
+            mimeTypes
+            maxPayloadLength
+            dropPartialPayloads
+          }
+          httpResponse {
+            mimeTypes
+            maxPayloadLength
+            dropPartialPayloads
+          }
+          dbQuery {
+            maxPayloadLength
+            dropPartialPayloads
+          }
+          messaging {
+            maxPayloadLength
+            dropPartialPayloads
+          }
+        }
+        codeAttributes {
+          column
+          filePath
+          function
+          lineNumber
+          namespace
+          stacktrace
+        }
+        headersCollection {
+          headerKeys
+        }
+        customInstrumentations {
+          golang {
+            packageName
+            functionName
+            receiverName
+            receiverMethodName
+          }
+          java {
+            methodName
+            className
+          }
+          php {
+            className
+            functionName
+          }
+        }
+      }
+    }
+  }`,
 			version.MustParse("v1.28"): `query GetInstrumentationRules {
     computePlatform {
       instrumentationRules {
@@ -1387,6 +1533,34 @@ var GET_INSTRUMENTATION_RULES = Operation{
 	},
 }
 
+// GET_INSTRUMENTATION_RULE_TYPES is a remote (cluster-scoped) GraphQL operation. Its document
+// varies by proxy platform type and Odigos version; use Operation.Pick to
+// select the right variant for a given proxy.
+var GET_INSTRUMENTATION_RULE_TYPES = Operation{
+	Name: "GET_INSTRUMENTATION_RULE_TYPES",
+	Variants: map[platform.Type]map[version.Version]string{
+		platform.K8s: {
+			version.MustParse("v1.31"): `query GetInstrumentationRuleTypes {
+    instrumentationRuleTypes {
+      type
+      displayName
+      description
+      supportedLanguages
+      docsUrl
+      fields {
+        name
+        displayName
+        componentType
+        componentProperties
+        initialValue
+        renderCondition
+      }
+    }
+  }`,
+		},
+	},
+}
+
 // GET_K8S_MANIFEST is a remote (cluster-scoped) GraphQL operation. Its document
 // varies by proxy platform type and Odigos version; use Operation.Pick to
 // select the right variant for a given proxy.
@@ -1446,16 +1620,16 @@ var GET_METRICS = Operation{
 	},
 }
 
-// GET_NAMESPACE is a remote (cluster-scoped) GraphQL operation. Its document
+// GET_NAMESPACES_WITH_SOURCES is a remote (cluster-scoped) GraphQL operation. Its document
 // varies by proxy platform type and Odigos version; use Operation.Pick to
 // select the right variant for a given proxy.
-var GET_NAMESPACE = Operation{
-	Name: "GET_NAMESPACE",
+var GET_NAMESPACES_WITH_SOURCES = Operation{
+	Name: "GET_NAMESPACES_WITH_SOURCES",
 	Variants: map[platform.Type]map[version.Version]string{
 		platform.K8s: {
-			version.MustParse("v1.20"): `query GetNamespace($namespaceName: String!) {
+			version.MustParse("v1.20"): `query GetNamespacesWithSources {
     computePlatform {
-      k8sActualNamespace(name: $namespaceName) {
+      k8sActualNamespaces {
         name
         selected
         dataStreamNames
@@ -1467,56 +1641,6 @@ var GET_NAMESPACE = Operation{
           selected
           numberOfInstances
         }
-      }
-    }
-  }`,
-		},
-		platform.Vm: {
-			version.MustParse("v0.1"): `query GetNamespace($namespaceName: String!) {
-    computePlatform {
-      k8sActualNamespace(name: $namespaceName) {
-        name
-        selected
-        dataStreamNames
-        sources {
-          namespace
-          kind
-          name
-          dataStreamNames
-          selected
-          numberOfInstances
-        }
-      }
-    }
-  }`,
-		},
-	},
-}
-
-// GET_NAMESPACES is a remote (cluster-scoped) GraphQL operation. Its document
-// varies by proxy platform type and Odigos version; use Operation.Pick to
-// select the right variant for a given proxy.
-var GET_NAMESPACES = Operation{
-	Name: "GET_NAMESPACES",
-	Variants: map[platform.Type]map[version.Version]string{
-		platform.K8s: {
-			version.MustParse("v1.20"): `query GetNamespaces {
-    computePlatform {
-      k8sActualNamespaces {
-        name
-        selected
-        dataStreamNames
-      }
-    }
-  }`,
-		},
-		platform.Vm: {
-			version.MustParse("v0.1"): `query GetNamespaces {
-    computePlatform {
-      k8sActualNamespaces {
-        name
-        selected
-        dataStreamNames
       }
     }
   }`,
@@ -1561,6 +1685,33 @@ var GET_NODE_COLLECTOR_INFO = Operation{
 	Name: "GET_NODE_COLLECTOR_INFO",
 	Variants: map[platform.Type]map[version.Version]string{
 		platform.K8s: {
+			version.MustParse("v1.33"): `query OdigletDaemonSetInfo {
+    odigletDaemonSetInfo {
+      status
+      nodes {
+        desired
+        ready
+      }
+      resources {
+        requests {
+          cpu
+          memory
+        }
+        limits {
+          cpu
+          memory
+        }
+      }
+      imageVersion
+      lastRolloutAt
+      rolloutInProgress
+      manifestYAML
+      configMapYAML
+      throughputTracesBytesPerSec
+      throughputMetricsBytesPerSec
+      throughputLogsBytesPerSec
+    }
+  }`,
 			version.MustParse("v1.20"): `query OdigletDaemonSetInfo {
     odigletDaemonSetInfo {
       status
@@ -1690,7 +1841,63 @@ var GET_SAMPLING_RULES = Operation{
 	Name: "GET_SAMPLING_RULES",
 	Variants: map[platform.Type]map[version.Version]string{
 		platform.K8s: {
-			version.MustParse("v1.24"): `query GetSamplingRules {
+			version.MustParse("v1.32"): `query GetSamplingRules {
+    sampling {
+      configs {
+        effective {
+          k8sHealthProbesSampling {
+            enabled
+            keepPercentage
+          }
+        }
+      }
+      rules {
+        id
+        name
+        noisyOperations { ruleId
+  name
+  disabled
+  sourceScopes { sources { namespace kind name }
+  namespaces
+  languages }
+  operation {
+    httpServer { route routePrefix method queryParams { name valueExact } }
+    httpClient { serverAddress templatedPath templatedPathPrefix method }
+  }
+  percentageAtMost
+  notes }
+        highlyRelevantOperations { ruleId
+  name
+  disabled
+  sourceScopes { sources { namespace kind name }
+  namespaces
+  languages }
+  error
+  durationAtLeastMs
+  operation {
+    httpServer { route routePrefix method }
+    kafkaConsumer { kafkaTopic }
+    kafkaProducer { kafkaTopic }
+  }
+  percentageAtLeast
+  notes }
+        costReductionRules { ruleId
+  name
+  disabled
+  sourceScopes { sources { namespace kind name }
+  namespaces
+  languages }
+  operation {
+    httpServer { route routePrefix method }
+    kafkaConsumer { kafkaTopic }
+    kafkaProducer { kafkaTopic }
+  }
+  percentageAtMost
+  notes }
+      }
+    }
+  }`,
+			version.MustParse("v1.26"): `query GetSamplingRules {
     sampling {
       configs {
         effective {
@@ -1814,52 +2021,17 @@ var GET_SOURCE = Operation{
     }
   }`,
 		},
-		platform.Vm: {
-			version.MustParse("v0.1"): `query GetSource($sourceId: K8sSourceId!) {
-    computePlatform {
-      source(sourceId: $sourceId) {
-        namespace
-        name
-        kind
-        dataStreamNames
-        selected
-        otelServiceName
-        containers {
-          containerName
-          language
-          runtimeVersion
-          overriden
-          instrumented
-          instrumentationMessage
-          otelDistroName
-        }
-        conditions {
-          status
-          type
-          reason
-          message
-
-        }
-        workloadOdigosHealthStatus {
-          status
-          reasonEnum
-          message
-        }
-      }
-    }
-  }`,
-		},
 	},
 }
 
-// GET_SOURCES is a remote (cluster-scoped) GraphQL operation. Its document
+// GET_SOURCES_WITH_STATUS is a remote (cluster-scoped) GraphQL operation. Its document
 // varies by proxy platform type and Odigos version; use Operation.Pick to
 // select the right variant for a given proxy.
-var GET_SOURCES = Operation{
-	Name: "GET_SOURCES",
+var GET_SOURCES_WITH_STATUS = Operation{
+	Name: "GET_SOURCES_WITH_STATUS",
 	Variants: map[platform.Type]map[version.Version]string{
 		platform.K8s: {
-			version.MustParse("v1.20"): `query GetSources {
+			version.MustParse("v1.20"): `query GetSourcesWithStatus {
     computePlatform {
       sources {
         namespace
@@ -1882,63 +2054,23 @@ var GET_SOURCES = Operation{
           type
           reason
           message
-
         }
       }
     }
-  }`,
-		},
-		platform.Vm: {
-			version.MustParse("v0.1"): `query GetSources {
-    computePlatform {
-      sources {
+    workloads(filter: { markedForInstrumentation: true }) {
+      id {
         namespace
-        name
         kind
-        dataStreamNames
-        selected
-        otelServiceName
-        containers {
-          containerName
-          language
-          runtimeVersion
-          overriden
-          instrumented
-          instrumentationMessage
-          otelDistroName
-        }
-        conditions {
-          status
-          type
-          reason
-          message
-
-        }
+        name
       }
-    }
-  }`,
-		},
-	},
-}
-
-// GET_SOURCE_CONDITIONS is a remote (cluster-scoped) GraphQL operation. Its document
-// varies by proxy platform type and Odigos version; use Operation.Pick to
-// select the right variant for a given proxy.
-var GET_SOURCE_CONDITIONS = Operation{
-	Name: "GET_SOURCE_CONDITIONS",
-	Variants: map[platform.Type]map[version.Version]string{
-		platform.K8s: {
-			version.MustParse("v1.20"): `query GetSourceConditions {
-    sourceConditions {
-      namespace
-      name
-      kind
-      conditions {
+      workloadOdigosHealthStatus {
         status
-        type
-        reason
+        reasonEnum
         message
-
+      }
+      podsAgentInjectionStatus {
+        status
+        message
       }
     }
   }`,
@@ -1973,11 +2105,135 @@ var GET_SOURCE_PROFILING = Operation{
 	Name: "GET_SOURCE_PROFILING",
 	Variants: map[platform.Type]map[version.Version]string{
 		platform.K8s: {
-			version.MustParse("v1.25"): `query GetSourceProfiling($sourceId: K8sSourceId!) {
+			version.MustParse("v1.25"): `query GetSourceProfiling($namespace: String!, $kind: K8sResourceKind!, $name: String!) {
     computePlatform {
-      source(sourceId: $sourceId) {
+      source(sourceId: { namespace: $namespace, kind: $kind, name: $name }) {
         profiling {
           profileJson
+        }
+      }
+    }
+  }`,
+		},
+	},
+}
+
+// GET_SOURCE_WITH_DETAILS is a remote (cluster-scoped) GraphQL operation. Its document
+// varies by proxy platform type and Odigos version; use Operation.Pick to
+// select the right variant for a given proxy.
+var GET_SOURCE_WITH_DETAILS = Operation{
+	Name: "GET_SOURCE_WITH_DETAILS",
+	Variants: map[platform.Type]map[version.Version]string{
+		platform.K8s: {
+			version.MustParse("v1.20"): `query GetSourceWithDetails($sourceId: K8sSourceId!, $namespace: String!, $kind: String!, $name: String!) {
+    computePlatform {
+      source(sourceId: $sourceId) {
+        namespace
+        name
+        kind
+        dataStreamNames
+        selected
+        otelServiceName
+        containers {
+          containerName
+          language
+          runtimeVersion
+          overriden
+          instrumented
+          instrumentationMessage
+          otelDistroName
+        }
+        conditions {
+          status
+          type
+          reason
+          message
+        }
+      }
+    }
+    sourceConditions {
+      namespace
+      name
+      kind
+      conditions {
+        status
+        type
+        reason
+        message
+      }
+    }
+    instrumentationInstanceComponents(namespace: $namespace, kind: $kind, name: $name) {
+      name
+      nonIdentifyingAttributes {
+        key
+        value
+      }
+    }
+    describeSource(namespace: $namespace, kind: $kind, name: $name) {
+      pods {
+        podName { name value }
+        nodeName { name value }
+        agentInjected { name value }
+        containers {
+          containerName { name value }
+          actualDevices { name value }
+          started { name value }
+          ready { name value }
+          instrumentationInstances {
+            healthy { name value }
+            message { name value }
+            identifyingAttributes { name value }
+          }
+        }
+      }
+    }
+    workloads(filter: { markedForInstrumentation: true }) {
+      id {
+        namespace
+        kind
+        name
+      }
+      workloadOdigosHealthStatus {
+        status
+        reasonEnum
+        message
+      }
+      podsAgentInjectionStatus {
+        status
+        message
+      }
+    }
+  }`,
+		},
+		platform.Vm: {
+			version.MustParse("v0.1"): `query GetSourceWithDetails($sourceId: K8sSourceId!) {
+    computePlatform {
+      source(sourceId: $sourceId) {
+        namespace
+        name
+        kind
+        dataStreamNames
+        selected
+        otelServiceName
+        containers {
+          containerName
+          language
+          runtimeVersion
+          overriden
+          instrumented
+          instrumentationMessage
+          otelDistroName
+        }
+        conditions {
+          status
+          type
+          reason
+          message
+        }
+        workloadOdigosHealthStatus {
+          status
+          reasonEnum
+          message
         }
       }
     }
@@ -2008,12 +2264,7 @@ var GET_TOKENS = Operation{
 		platform.Vm: {
 			version.MustParse("v0.1"): `query GetTokens {
     computePlatform {
-      apiTokens {
-        token
-        name
-        issuedAt
-        expiresAt
-      }
+      apiTokens
     }
   }`,
 		},
@@ -2156,7 +2407,7 @@ var GET_WORKLOADS_BY_IDS = Operation{
 	Name: "GET_WORKLOADS_BY_IDS",
 	Variants: map[platform.Type]map[version.Version]string{
 		platform.K8s: {
-			version.MustParse("v1.30"): `query GetWorkloadsByIds($ids: [K8sWorkloadIdInput!]!) {
+			version.MustParse("v1.33"): `query GetWorkloadsByIds($ids: [K8sWorkloadIdInput!]!) {
     workloadsByIds(ids: $ids) {
       id {
         namespace
@@ -2207,6 +2458,16 @@ var GET_WORKLOADS_BY_IDS = Operation{
           reasonEnum
           message
         }
+podsManifestInjection {
+name
+          status
+          reasonEnum
+          message
+          actionItems {
+            type
+            buttonText
+          }
+        }
         autoRollback {
           name
           status
@@ -2230,6 +2491,34 @@ var GET_WORKLOADS_BY_IDS = Operation{
           status
           reasonEnum
           message
+        }
+      }
+rollout {
+        rolloutStatus {
+name
+          status
+          reasonEnum
+          message
+        }
+        agentsMetaHashChangedTime
+        podsManifestInjectionStatus {
+name
+          status
+          reasonEnum
+          message
+          actionItems {
+            type
+            buttonText
+          }
+        }
+        podsManifestInjectionOverview {
+          totalPods
+          totalAgentNotAppliedPods
+          agentNotAppliedOk
+          totalAgentAppliedPods
+          agentAppliedOk
+          totalAgentOutOfDatePods
+          agentOutOfDateOk
         }
       }
       autoRollback {
@@ -2277,10 +2566,14 @@ var GET_WORKLOADS_BY_IDS = Operation{
                 name
                 disabled
                 operation {
-                  httpServer {
+httpServer {
                     route
                     routePrefix
                     method
+                    queryParams {
+                      name
+                      valueExact
+                    }
                   }
                   httpClient {
                     serverAddress
@@ -2302,9 +2595,13 @@ var GET_WORKLOADS_BY_IDS = Operation{
               disabled
               operation {
                 httpServer {
-                  route
+route
                   routePrefix
                   method
+                  queryParams {
+                    name
+                    valueExact
+                  }
                 }
                 httpClient {
                   serverAddress
@@ -2356,6 +2653,12 @@ var GET_WORKLOADS_BY_IDS = Operation{
               percentageAtMost
             }
           }
+        }
+        instrumentations {
+          name
+          healthy
+          message
+          isStandardLibrary
         }
       }
       pods {
@@ -2429,7 +2732,577 @@ var GET_WORKLOADS_BY_IDS = Operation{
       }
     }
   }`,
-			version.MustParse("v1.20"): `query GetWorkloadsByIds($ids: [K8sWorkloadIdInput!]!) {
+			version.MustParse("v1.32"): `query GetWorkloadsByIds($ids: [K8sWorkloadIdInput!]!) {
+    workloadsByIds(ids: $ids) {
+      id {
+        namespace
+        kind
+        name
+      }
+      serviceName
+      dataStreamNames
+      numberOfInstances
+      rollbackOccurred
+      workloadOdigosHealthStatus {
+        name
+        status
+        reasonEnum
+        message
+      }
+      podsAgentInjectionStatus {
+        name
+        status
+        reasonEnum
+        message
+      }
+      podsOdigosHealthStatus {
+        name
+        status
+        reasonEnum
+        message
+      }
+      markedForInstrumentation {
+        markedForInstrumentation
+      }
+      conditions {
+        runtimeDetection {
+          name
+          status
+          reasonEnum
+          message
+        }
+        agentInjectionEnabled {
+          name
+          status
+          reasonEnum
+          message
+        }
+        rollout {
+          name
+          status
+          reasonEnum
+          message
+        }
+
+        autoRollback {
+          name
+          status
+          reasonEnum
+          message
+        }
+        agentInjected {
+          name
+          status
+          reasonEnum
+          message
+        }
+        processesAgentHealth {
+          name
+          status
+          reasonEnum
+          message
+        }
+        expectingTelemetry {
+          name
+          status
+          reasonEnum
+          message
+        }
+      }
+
+      autoRollback {
+        autoRollbackStatus {
+          name
+          status
+          reasonEnum
+          message
+        }
+        rollbackOccurred
+      }
+      runtimeInfo {
+        detectedLanguages
+      }
+      containers {
+        containerName
+        runtimeInfo {
+          language
+          runtimeVersion
+        }
+        agentEnabled {
+          agentEnabled
+          agentEnabledStatus {
+            status
+            reasonEnum
+            message
+          }
+          otelDistroName
+        }
+        overrides {
+          containerName
+          otelDistroName
+          runtimeInfo {
+            language
+            runtimeVersion
+          }
+        }
+        agentConfig {
+          traces {
+            headSampling {
+              dryRun
+              spanMetricsMode
+              noisyOperations {
+                ruleId
+                name
+                disabled
+                operation {
+httpServer {
+                    route
+                    routePrefix
+                    method
+                    queryParams {
+                      name
+                      valueExact
+                    }
+                  }
+                  httpClient {
+                    serverAddress
+                    templatedPath
+                    templatedPathPrefix
+                    method
+                  }
+                }
+                percentageAtMost
+              }
+            }
+          }
+        }
+        collectorConfig {
+          tailSampling {
+            noisyOperations {
+              ruleId
+              name
+              disabled
+              operation {
+                httpServer {
+route
+                  routePrefix
+                  method
+                  queryParams {
+                    name
+                    valueExact
+                  }
+                }
+                httpClient {
+                  serverAddress
+                  templatedPath
+                  templatedPathPrefix
+                  method
+                }
+              }
+              percentageAtMost
+            }
+            highlyRelevantOperations {
+              ruleId
+              name
+              disabled
+              error
+              durationAtLeastMs
+              operation {
+                httpServer {
+                  route
+                  routePrefix
+                  method
+                }
+                kafkaConsumer {
+                  kafkaTopic
+                }
+                kafkaProducer {
+                  kafkaTopic
+                }
+              }
+              percentageAtLeast
+            }
+            costReductionRules {
+              ruleId
+              name
+              disabled
+              operation {
+                httpServer {
+                  route
+                  routePrefix
+                  method
+                }
+                kafkaConsumer {
+                  kafkaTopic
+                }
+                kafkaProducer {
+                  kafkaTopic
+                }
+              }
+              percentageAtMost
+            }
+          }
+        }
+        instrumentations {
+          name
+          healthy
+          message
+          isStandardLibrary
+        }
+      }
+      pods {
+        podName
+        nodeName
+        startTime
+        agentInjected
+        agentInjectedStatus {
+          name
+          status
+          reasonEnum
+          message
+        }
+        k8sHealthStatus {
+          name
+          status
+          reasonEnum
+          message
+        }
+        odigosHealthStatus {
+          name
+          status
+          reasonEnum
+          message
+        }
+        containers {
+          containerName
+          otelDistroName
+          started
+          ready
+          isCrashLoop
+          restartCount
+          runningStartedTime
+          waitingReasonEnum
+          waitingMessage
+          k8sHealthStatus {
+            name
+            status
+            reasonEnum
+            message
+          }
+          odigosHealthStatus {
+            name
+            status
+            reasonEnum
+            message
+          }
+          processes {
+            healthy
+            healthStatus {
+              name
+              status
+              reasonEnum
+              message
+            }
+            identifyingAttributes {
+              name
+              value
+            }
+            instrumentations {
+              name
+              healthy
+              message
+              isStandardLibrary
+            }
+          }
+        }
+      }
+      telemetryMetrics {
+        throughputBytes
+      }
+    }
+  }`,
+			version.MustParse("v1.29"): `query GetWorkloadsByIds($ids: [K8sWorkloadIdInput!]!) {
+    workloadsByIds(ids: $ids) {
+      id {
+        namespace
+        kind
+        name
+      }
+      serviceName
+      dataStreamNames
+      numberOfInstances
+      rollbackOccurred
+      workloadOdigosHealthStatus {
+        name
+        status
+        reasonEnum
+        message
+      }
+      podsAgentInjectionStatus {
+        name
+        status
+        reasonEnum
+        message
+      }
+      podsOdigosHealthStatus {
+        name
+        status
+        reasonEnum
+        message
+      }
+      markedForInstrumentation {
+        markedForInstrumentation
+      }
+      conditions {
+        runtimeDetection {
+          name
+          status
+          reasonEnum
+          message
+        }
+        agentInjectionEnabled {
+          name
+          status
+          reasonEnum
+          message
+        }
+        rollout {
+          name
+          status
+          reasonEnum
+          message
+        }
+
+        autoRollback {
+          name
+          status
+          reasonEnum
+          message
+        }
+        agentInjected {
+          name
+          status
+          reasonEnum
+          message
+        }
+        processesAgentHealth {
+          name
+          status
+          reasonEnum
+          message
+        }
+        expectingTelemetry {
+          name
+          status
+          reasonEnum
+          message
+        }
+      }
+
+      autoRollback {
+        autoRollbackStatus {
+          name
+          status
+          reasonEnum
+          message
+        }
+        rollbackOccurred
+      }
+      runtimeInfo {
+        detectedLanguages
+      }
+      containers {
+        containerName
+        runtimeInfo {
+          language
+          runtimeVersion
+        }
+        agentEnabled {
+          agentEnabled
+          agentEnabledStatus {
+            status
+            reasonEnum
+            message
+          }
+          otelDistroName
+        }
+        overrides {
+          containerName
+          otelDistroName
+          runtimeInfo {
+            language
+            runtimeVersion
+          }
+        }
+        agentConfig {
+          traces {
+            headSampling {
+              dryRun
+              spanMetricsMode
+              noisyOperations {
+                ruleId
+                name
+                disabled
+                operation {
+httpServer {
+                    route
+                    routePrefix
+                    method
+                  }
+                  httpClient {
+                    serverAddress
+                    templatedPath
+                    templatedPathPrefix
+                    method
+                  }
+                }
+                percentageAtMost
+              }
+            }
+          }
+        }
+        collectorConfig {
+          tailSampling {
+            noisyOperations {
+              ruleId
+              name
+              disabled
+              operation {
+                httpServer {
+route
+                  routePrefix
+                  method
+                }
+                httpClient {
+                  serverAddress
+                  templatedPath
+                  templatedPathPrefix
+                  method
+                }
+              }
+              percentageAtMost
+            }
+            highlyRelevantOperations {
+              ruleId
+              name
+              disabled
+              error
+              durationAtLeastMs
+              operation {
+                httpServer {
+                  route
+                  routePrefix
+                  method
+                }
+                kafkaConsumer {
+                  kafkaTopic
+                }
+                kafkaProducer {
+                  kafkaTopic
+                }
+              }
+              percentageAtLeast
+            }
+            costReductionRules {
+              ruleId
+              name
+              disabled
+              operation {
+                httpServer {
+                  route
+                  routePrefix
+                  method
+                }
+                kafkaConsumer {
+                  kafkaTopic
+                }
+                kafkaProducer {
+                  kafkaTopic
+                }
+              }
+              percentageAtMost
+            }
+          }
+        }
+        instrumentations {
+          name
+          healthy
+          message
+          isStandardLibrary
+        }
+      }
+      pods {
+        podName
+        nodeName
+        startTime
+        agentInjected
+        agentInjectedStatus {
+          name
+          status
+          reasonEnum
+          message
+        }
+        k8sHealthStatus {
+          name
+          status
+          reasonEnum
+          message
+        }
+        odigosHealthStatus {
+          name
+          status
+          reasonEnum
+          message
+        }
+        containers {
+          containerName
+          otelDistroName
+          started
+          ready
+          isCrashLoop
+          restartCount
+          runningStartedTime
+          waitingReasonEnum
+          waitingMessage
+          k8sHealthStatus {
+            name
+            status
+            reasonEnum
+            message
+          }
+          odigosHealthStatus {
+            name
+            status
+            reasonEnum
+            message
+          }
+          processes {
+            healthy
+            healthStatus {
+              name
+              status
+              reasonEnum
+              message
+            }
+            identifyingAttributes {
+              name
+              value
+            }
+            instrumentations {
+              name
+              healthy
+              message
+              isStandardLibrary
+            }
+          }
+        }
+      }
+      telemetryMetrics {
+        throughputBytes
+      }
+    }
+  }`,
+			version.MustParse("v1.21"): `query GetWorkloadsByIds($ids: [K8sWorkloadIdInput!]!) {
     workloadsByIds(ids: $ids) {
 id {
         namespace
@@ -2558,7 +3431,7 @@ var GET_WORKLOADS_BY_IDS_SLIM = Operation{
   }
     }
   }`,
-			version.MustParse("v1.20"): `query GetWorkloadsByIdsSlim($ids: [K8sWorkloadIdInput!]!) {
+			version.MustParse("v1.21"): `query GetWorkloadsByIdsSlim($ids: [K8sWorkloadIdInput!]!) {
     workloadsByIds(ids: $ids) {
       id {
         namespace
@@ -2659,6 +3532,7 @@ var GET_WORKLOADS_BY_IDS_SLIM = Operation{
 // invariants across the entire generated surface.
 var AllRemoteQueries = []*Operation{
 	&GET_ACTIONS,
+	&GET_ACTION_TYPES,
 	&GET_COLLECTOR_POD_INFO,
 	&GET_CONFIG,
 	&GET_CONFIG_YAMLS,
@@ -2671,10 +3545,10 @@ var AllRemoteQueries = []*Operation{
 	&GET_GATEWAY_INFO,
 	&GET_GATEWAY_PODS,
 	&GET_INSTRUMENTATION_RULES,
+	&GET_INSTRUMENTATION_RULE_TYPES,
 	&GET_K8S_MANIFEST,
 	&GET_METRICS,
-	&GET_NAMESPACE,
-	&GET_NAMESPACES,
+	&GET_NAMESPACES_WITH_SOURCES,
 	&GET_NAMESPACES_WITH_WORKLOADS,
 	&GET_NODE_COLLECTOR_INFO,
 	&GET_NODE_COLLECTOR_PODS,
@@ -2684,10 +3558,10 @@ var AllRemoteQueries = []*Operation{
 	&GET_SAMPLING_RULES,
 	&GET_SERVICE_MAP,
 	&GET_SOURCE,
-	&GET_SOURCES,
-	&GET_SOURCE_CONDITIONS,
+	&GET_SOURCES_WITH_STATUS,
 	&GET_SOURCE_LIBRARIES,
 	&GET_SOURCE_PROFILING,
+	&GET_SOURCE_WITH_DETAILS,
 	&GET_TOKENS,
 	&GET_WORKLOADS,
 	&GET_WORKLOADS_BY_IDS,

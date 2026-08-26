@@ -5,6 +5,36 @@
 
 package operations
 
+// CREATE_CLOUD_CONNECTOR is a central-scoped GraphQL operation. It does not vary by
+// proxy version because it targets Central directly.
+const CREATE_CLOUD_CONNECTOR = `mutation CreateCloudConnector($input: CreateCloudConnectorInput!) {
+    createCloudConnector(input: $input) {
+      created
+      connectorId
+      test {
+        success
+        accountId
+        identity
+        checks {
+          name
+          displayName
+          passed
+          message
+          remediation
+        }
+      }
+    }
+  }`
+
+// CREATE_GROUP_ROLE_MAPPING is a central-scoped GraphQL operation. It does not vary by
+// proxy version because it targets Central directly.
+const CREATE_GROUP_ROLE_MAPPING = `mutation CreateGroupRoleMapping($input: WriteGroupRoleMappingInput!) {
+    createGroupRoleMapping(input: $input) {
+      success
+      error
+    }
+  }`
+
 // CREATE_TEAM is a central-scoped GraphQL operation. It does not vary by
 // proxy version because it targets Central directly.
 const CREATE_TEAM = `mutation CreateTeam($input: WriteTeamInput!) {
@@ -20,6 +50,15 @@ const CREATE_USER = `mutation CreateUser($input: WriteUserInput!) {
     createUser(input: $input) {
       generatedPassword
       success
+    }
+  }`
+
+// DELETE_GROUP_ROLE_MAPPING is a central-scoped GraphQL operation. It does not vary by
+// proxy version because it targets Central directly.
+const DELETE_GROUP_ROLE_MAPPING = `mutation DeleteGroupRoleMapping($providerId: AuthProviderId!, $id: String!) {
+    deleteGroupRoleMapping(providerId: $providerId, id: $id) {
+      success
+      error
     }
   }`
 
@@ -97,6 +136,61 @@ const GET_ALL_CLUSTER_SNAPSHOTS = `query GetAllClusterSnapshots {
     }
   }`
 
+// GET_CLOUD_CONNECTOR_PROVIDERS is a central-scoped GraphQL operation. It does not vary by
+// proxy version because it targets Central directly.
+const GET_CLOUD_CONNECTOR_PROVIDERS = `query GetCloudConnectorProviders {
+    cloudConnectorProviders {
+      provider
+      displayName
+      connectorFields {
+        name
+        displayName
+        componentType
+        componentProps
+        required
+        secret
+        tooltip
+        initialValue
+        envVar
+      }
+      auth {
+        permissions
+        methods {
+          id
+          displayName
+          description
+          baseMethods
+          fields {
+            name
+            displayName
+            componentType
+            componentProps
+            required
+            secret
+            tooltip
+            initialValue
+            envVar
+          }
+        }
+      }
+      features {
+        key
+        enabled
+        displayName
+        description
+        permissions
+        types {
+          name
+          displayName
+          description
+          permissions
+          method
+          implemented
+        }
+      }
+    }
+  }`
+
 // GET_CLUSTER_SNAPSHOT is a central-scoped GraphQL operation. It does not vary by
 // proxy version because it targets Central directly.
 const GET_CLUSTER_SNAPSHOT = `query GetClusterSnapshot($clusterId: String!) {
@@ -126,6 +220,7 @@ const GET_COMPUTE_PLATFORMS = `query GetComputePlatforms {
       id
       name
       odigosVersion
+      graphqlSchemaVersion
       type
       status
       connectedAt
@@ -140,6 +235,25 @@ const GET_COMPUTE_PLATFORMS = `query GetComputePlatforms {
         id
         name
       }
+    }
+  }`
+
+// GET_CONFIGURED_IDENTITY_PROVIDERS is a central-scoped GraphQL operation. It does not vary by
+// proxy version because it targets Central directly.
+const GET_CONFIGURED_IDENTITY_PROVIDERS = `query ConfiguredIdentityProviders {
+    configuredIdentityProviders
+  }`
+
+// GET_GROUP_ROLE_MAPPINGS is a central-scoped GraphQL operation. It does not vary by
+// proxy version because it targets Central directly.
+const GET_GROUP_ROLE_MAPPINGS = `query GetGroupRoleMappings($providerId: AuthProviderId!) {
+    groupRoleMappings(providerId: $providerId) {
+      id
+      providerId
+      claimName
+      claimValue
+      role
+      displayName
     }
   }`
 
@@ -287,10 +401,36 @@ const SIGN_IN_URL = `query signInUrl($providerId: AuthProviderId!) {
     signInUrl(providerId: $providerId)
   }`
 
+// TEST_CLOUD_CONNECTOR_CONNECTION is a central-scoped GraphQL operation. It does not vary by
+// proxy version because it targets Central directly.
+const TEST_CLOUD_CONNECTOR_CONNECTION = `mutation TestCloudConnectorConnection($input: TestCloudConnectorConnectionInput!) {
+    testCloudConnectorConnection(input: $input) {
+      success
+      accountId
+      identity
+      checks {
+        name
+        displayName
+        passed
+        message
+        remediation
+      }
+    }
+  }`
+
 // UPDATE_COMPUTE_PLATFORM is a central-scoped GraphQL operation. It does not vary by
 // proxy version because it targets Central directly.
 const UPDATE_COMPUTE_PLATFORM = `mutation UpdateComputePlatform($id: String!, $input: WriteComputePlatformInput!) {
     updateComputePlatform(id: $id, input: $input) {
+      success
+      error
+    }
+  }`
+
+// UPDATE_GROUP_ROLE_MAPPING is a central-scoped GraphQL operation. It does not vary by
+// proxy version because it targets Central directly.
+const UPDATE_GROUP_ROLE_MAPPING = `mutation UpdateGroupRoleMapping($id: String!, $input: WriteGroupRoleMappingInput!) {
+    updateGroupRoleMapping(id: $id, input: $input) {
       success
       error
     }
