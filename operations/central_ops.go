@@ -53,6 +53,15 @@ const CREATE_USER = `mutation CreateUser($input: WriteUserInput!) {
     }
   }`
 
+// DELETE_CLOUD_CONNECTOR is a central-scoped GraphQL operation. It does not vary by
+// proxy version because it targets Central directly.
+const DELETE_CLOUD_CONNECTOR = `mutation DeleteCloudConnector($connectorId: String!) {
+    deleteCloudConnector(connectorId: $connectorId) {
+      success
+      error
+    }
+  }`
+
 // DELETE_GROUP_ROLE_MAPPING is a central-scoped GraphQL operation. It does not vary by
 // proxy version because it targets Central directly.
 const DELETE_GROUP_ROLE_MAPPING = `mutation DeleteGroupRoleMapping($providerId: AuthProviderId!, $id: String!) {
@@ -155,6 +164,7 @@ const GET_CLOUD_CONNECTOR_PROVIDERS = `query GetCloudConnectorProviders {
       }
       auth {
         permissions
+        defaultMethod
         methods {
           id
           displayName
@@ -186,6 +196,22 @@ const GET_CLOUD_CONNECTOR_PROVIDERS = `query GetCloudConnectorProviders {
           permissions
           method
           implemented
+        }
+      }
+      setup {
+        subtitle
+        artifacts {
+          id
+          section
+          variant
+          variantLabel
+          title
+          description
+          steps
+          format
+          template
+          itemTemplate
+          itemSeparator
         }
       }
     }

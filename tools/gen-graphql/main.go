@@ -274,20 +274,23 @@ func extractFragments(src string) map[string]string {
 		// The opening backtick is the final char the regex matched, so the
 		// literal body begins at m[1].
 		start := m[1]
-		end := strings.IndexByte(src[start:], '`')
+		end := findTemplateEnd(src, start)
 		if end < 0 {
 			continue
 		}
-		out[name] = strings.TrimSpace(src[start : start+end])
+		out[name] = strings.TrimSpace(src[start:end])
 	}
 	return out
 }
 
 // builderParam is one parameter of an arrow-function query builder.
 type builderParam struct {
-	Name        string
-	HasDefault  bool
-	DefaultBool bool
+	Name       string
+	HasDefault bool
+	// Default is the raw default expression as written in the source, e.g.
+	// "false" (boolean) or "''" (empty string). It is interpreted the same way
+	// as a call argument when the parameter is omitted at the call site.
+	Default string
 }
 
 // builder captures an arrow-function query builder, e.g.
@@ -367,11 +370,11 @@ func extractBuilders(src string) map[string]builder {
 		name := src[m[2]:m[3]]
 		params := parseParams(src[m[4]:m[5]])
 		start := m[1] // just past the opening backtick
-		end := strings.IndexByte(src[start:], '`')
+		end := findTemplateEnd(src, start)
 		if end < 0 {
 			continue
 		}
-		out[name] = builder{Name: name, Params: params, Body: strings.TrimSpace(src[start : start+end])}
+		out[name] = builder{Name: name, Params: params, Body: strings.TrimSpace(src[start:end])}
 	}
 	return out
 }
@@ -392,9 +395,8 @@ func parseParams(list string) []builderParam {
 		p := builderParam{}
 		// Split off a default value if present.
 		if eq := strings.IndexByte(raw, '='); eq >= 0 {
-			def := strings.TrimSpace(raw[eq+1:])
 			p.HasDefault = true
-			p.DefaultBool = def == "true"
+			p.Default = strings.TrimSpace(raw[eq+1:])
 			raw = strings.TrimSpace(raw[:eq])
 		}
 		// Drop a `: type` annotation, keeping only the identifier.
@@ -430,78 +432,125 @@ func (r *resolver) resolveEnv(doc string, env map[string]callValue) string {
 	return doc
 }
 
-// expandOnce replaces every currently-resolvable ${...} in doc in a single
-// left-to-right pass and reports whether anything changed. Interpolations
-// introduced by a substituted fragment are handled by the next pass.
-func (r *resolver) expandOnce(doc string, env map[string]callValue) (string, bool) {
-	changed := false
-	var b strings.Builder
-	i := 0
-	for i < len(doc) {
-		if strings.HasPrefix(doc[i:], "${") {
-			close := strings.IndexByte(doc[i+2:], '}')
-			if close >= 0 {
-				expr := strings.TrimSpace(doc[i+2 : i+2+close])
-				if val, ok := r.evalExpr(expr, env); ok {
-					b.WriteString(val)
-					changed = true
-					i = i + 2 + close + 1
-					continue
-				}
-			}
+// skipQuoted returns the index just past a single- or double-quoted string
+// literal whose opening quote is at s[i]. Backslash escapes are honored. A
+// backtick template literal is not handled here (see findTemplateEnd), because
+// it may itself embed ${...} interpolations. Returns len(s) if unterminated.
+func skipQuoted(s string, i int) int {
+	q := s[i]
+	i++
+	for i < len(s) {
+		switch s[i] {
+		case '\\':
+			i += 2
+			continue
+		case q:
+			return i + 1
 		}
-		b.WriteByte(doc[i])
 		i++
 	}
-	return b.String(), changed
+	return len(s)
 }
 
-// evalExpr evaluates a single interpolation expression: a bare identifier
-// (parameter or fragment), a quoted empty string, or a
-// `cond ? THEN : ELSE` ternary whose condition is a boolean parameter. Returns
-// ok=false when the expression cannot be resolved.
-func (r *resolver) evalExpr(expr string, env map[string]callValue) (string, bool) {
-	if q := strings.IndexByte(expr, '?'); q >= 0 {
-		colon := strings.IndexByte(expr[q+1:], ':')
-		if colon < 0 {
-			return "", false
+// findTemplateEnd returns the index of the backtick that closes a template
+// literal whose body begins at s[i] (i.e. i is just past the opening backtick).
+// It skips over backslash escapes and over ${...} interpolations (which may
+// contain nested braces, quoted strings, and further template literals).
+// Returns -1 if the literal is unterminated.
+func findTemplateEnd(s string, i int) int {
+	for i < len(s) {
+		switch s[i] {
+		case '\\':
+			i += 2
+			continue
+		case '`':
+			return i
+		case '$':
+			if i+1 < len(s) && s[i+1] == '{' {
+				j := matchInterp(s, i+1)
+				if j < 0 {
+					return -1
+				}
+				i = j + 1
+				continue
+			}
 		}
-		cond := strings.TrimSpace(expr[:q])
-		thenExpr := strings.TrimSpace(expr[q+1 : q+1+colon])
-		elseExpr := strings.TrimSpace(expr[q+1+colon+1:])
-		v, ok := env[cond]
-		if !ok || !v.isBool {
-			return "", false
-		}
-		if v.b {
-			return r.evalOperand(thenExpr, env)
-		}
-		return r.evalOperand(elseExpr, env)
+		i++
 	}
-	return r.evalOperand(expr, env)
+	return -1
 }
 
-// evalOperand resolves an identifier (parameter or fragment) or a quoted
-// string literal (including the empty string).
-func (r *resolver) evalOperand(expr string, env map[string]callValue) (string, bool) {
-	if s, ok := unquoteJSString(expr); ok {
-		return s, true
+// matchInterp returns the index of the '}' that closes an interpolation whose
+// opening '{' is at s[open] (the '{' of a "${"). Brace depth is balanced while
+// skipping quoted strings and nested template literals so a '}' inside a string
+// or template is never mistaken for the terminator. Returns -1 if unbalanced.
+func matchInterp(s string, open int) int {
+	depth := 0
+	i := open
+	for i < len(s) {
+		switch s[i] {
+		case '\\':
+			i += 2
+			continue
+		case '\'', '"':
+			i = skipQuoted(s, i)
+			continue
+		case '`':
+			end := findTemplateEnd(s, i+1)
+			if end < 0 {
+				return -1
+			}
+			i = end + 1
+			continue
+		case '{':
+			depth++
+		case '}':
+			depth--
+			if depth == 0 {
+				return i
+			}
+		}
+		i++
 	}
-	if v, ok := env[expr]; ok && !v.isBool {
-		return v.text, true
-	}
-	if frag, ok := r.fragments[expr]; ok {
-		return frag, true
-	}
-	return "", false
+	return -1
 }
 
-// unquoteJSString decodes a single-, double-, or backtick-quoted JavaScript
-// string literal, translating the escape sequences that appear in inlined
-// GraphQL selection-set snippets (\n, \t, \r, \\, and escaped quotes). It
-// returns ok=false when expr is not a single quoted literal (e.g. a bare
-// identifier or text containing an unescaped closing quote).
-func unquoteJSString(expr string) (string, bool) {
+// indexTopLevel returns the index of the first occurrence of b in s that is not
+// inside a quoted string or template literal, or -1. Used to split ternaries so
+// a '?' or ':' appearing inside a string branch is not treated as a delimiter.
+func indexTopLevel(s string, b byte) int {
+	i := 0
+	for i < len(s) {
+		switch c := s[i]; c {
+		case '\\':
+			i += 2
+			continue
+		case '\'', '"':
+			i = skipQuoted(s, i)
+			continue
+		case '`':
+			end := findTemplateEnd(s, i+1)
+			if end < 0 {
+				return -1
+			}
+			i = end + 1
+			continue
+		default:
+			if c == b {
+				return i
+			}
+		}
+		i++
+	}
+	return -1
+}
+
+// unquoteJS decodes a single-, double-, or backtick-quoted JavaScript string
+// literal, translating the escape sequences that appear in inlined GraphQL
+// selection-set snippets (\n, \t, \r, \\, and escaped quotes). It returns
+// ok=false when expr is not a single quoted literal (e.g. a bare identifier or
+// text with an unescaped closing quote before the end).
+func unquoteJS(expr string) (string, bool) {
 	if len(expr) < 2 {
 		return "", false
 	}
@@ -539,14 +588,78 @@ func unquoteJSString(expr string) (string, bool) {
 			}
 			continue
 		}
-		// An unescaped matching quote before the end means expr is not one
-		// single literal, so refuse rather than mis-parse.
 		if c == q {
 			return "", false
 		}
 		b.WriteByte(c)
 	}
 	return b.String(), true
+}
+
+// expandOnce replaces every currently-resolvable ${...} in doc in a single
+// left-to-right pass and reports whether anything changed. Interpolations
+// introduced by a substituted fragment are handled by the next pass.
+func (r *resolver) expandOnce(doc string, env map[string]callValue) (string, bool) {
+	changed := false
+	var b strings.Builder
+	i := 0
+	for i < len(doc) {
+		if strings.HasPrefix(doc[i:], "${") {
+			if close := matchInterp(doc, i+1); close >= 0 {
+				expr := strings.TrimSpace(doc[i+2 : close])
+				if val, ok := r.evalExpr(expr, env); ok {
+					b.WriteString(val)
+					changed = true
+					i = close + 1
+					continue
+				}
+			}
+		}
+		b.WriteByte(doc[i])
+		i++
+	}
+	return b.String(), changed
+}
+
+// evalExpr evaluates a single interpolation expression: a bare identifier
+// (parameter or fragment), a quoted empty string, or a
+// `cond ? THEN : ELSE` ternary whose condition is a boolean parameter. Returns
+// ok=false when the expression cannot be resolved.
+func (r *resolver) evalExpr(expr string, env map[string]callValue) (string, bool) {
+	if q := indexTopLevel(expr, '?'); q >= 0 {
+		colon := indexTopLevel(expr[q+1:], ':')
+		if colon < 0 {
+			return "", false
+		}
+		cond := strings.TrimSpace(expr[:q])
+		thenExpr := strings.TrimSpace(expr[q+1 : q+1+colon])
+		elseExpr := strings.TrimSpace(expr[q+1+colon+1:])
+		v, ok := env[cond]
+		if !ok || !v.isBool {
+			return "", false
+		}
+		if v.b {
+			return r.evalOperand(thenExpr, env)
+		}
+		return r.evalOperand(elseExpr, env)
+	}
+	return r.evalOperand(expr, env)
+}
+
+// evalOperand resolves a bound parameter, a fragment identifier, or a quoted
+// string literal (single, double, or backtick — including multi-line and the
+// empty string).
+func (r *resolver) evalOperand(expr string, env map[string]callValue) (string, bool) {
+	if v, ok := env[expr]; ok && !v.isBool {
+		return v.text, true
+	}
+	if frag, ok := r.fragments[expr]; ok {
+		return frag, true
+	}
+	if s, ok := unquoteJS(expr); ok {
+		return s, true
+	}
+	return "", false
 }
 
 // evalCall evaluates a builder call expression such as
@@ -577,7 +690,7 @@ func (r *resolver) evalCall(expr string) (string, bool) {
 		case i < len(args):
 			env[p.Name] = r.argValue(args[i])
 		case p.HasDefault:
-			env[p.Name] = callValue{isBool: true, b: p.DefaultBool}
+			env[p.Name] = r.argValue(p.Default)
 		}
 	}
 	return r.resolveEnv(b.Body, env), true
@@ -591,6 +704,9 @@ func (r *resolver) argValue(arg string) callValue {
 		return callValue{isBool: true, b: true}
 	case "false":
 		return callValue{isBool: true, b: false}
+	}
+	if s, ok := unquoteJS(arg); ok {
+		return callValue{text: s}
 	}
 	if frag, ok := r.fragments[arg]; ok {
 		return callValue{text: r.resolve(frag)}
