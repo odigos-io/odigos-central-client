@@ -496,7 +496,7 @@ var CREATE_INSTRUMENTATION_RULE = Operation{
       }
     }
   }`,
-			version.MustParse("v1.28"): `mutation CreateInstrumentationRule($instrumentationRule: InstrumentationRuleInput!) {
+			version.MustParse("v1.26"): `mutation CreateInstrumentationRule($instrumentationRule: InstrumentationRuleInput!) {
     createInstrumentationRule(instrumentationRule: $instrumentationRule) {
       type
       ruleId
@@ -562,6 +562,12 @@ var CREATE_INSTRUMENTATION_RULE = Operation{
       disabled
       mutable
       profileName
+      # Echoed back so a later edit doesn't clear scope (update is a full replace).
+      workloads {
+        namespace
+        kind
+        name
+      }
       payloadCollection {
         httpRequest {
           mimeTypes
@@ -1345,7 +1351,7 @@ var UPDATE_INSTURMENTATION_RULE = Operation{
       }
     }
   }`,
-			version.MustParse("v1.28"): `mutation UpdateInstrumentationRule($ruleId: ID!, $instrumentationRule: InstrumentationRuleInput!) {
+			version.MustParse("v1.26"): `mutation UpdateInstrumentationRule($ruleId: ID!, $instrumentationRule: InstrumentationRuleInput!) {
     updateInstrumentationRule(ruleId: $ruleId, instrumentationRule: $instrumentationRule) {
       type
       ruleId
@@ -1411,6 +1417,12 @@ var UPDATE_INSTURMENTATION_RULE = Operation{
       disabled
       mutable
       profileName
+      # Echoed back so a later edit doesn't clear scope (update is a full replace).
+      workloads {
+        namespace
+        kind
+        name
+      }
       payloadCollection {
         httpRequest {
           mimeTypes

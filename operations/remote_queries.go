@@ -50,8 +50,7 @@ var GET_ACTIONS = Operation{
             overwriteExistingValues
             attributeNamesToDelete
             renames
-            piiCategories
-            customFormatMaskings {
+            piiCategoriescustomFormatMaskings {
               lookupKey
               dataFormat
             }
@@ -87,6 +86,11 @@ var GET_ACTIONS = Operation{
             status
             type
             reason
+            message
+          }statuses {
+            name
+            status
+            reasonEnum
             message
           }
         }
@@ -1400,7 +1404,7 @@ var GET_INSTRUMENTATION_RULES = Operation{
       }
     }
   }`,
-			version.MustParse("v1.28"): `query GetInstrumentationRules {
+			version.MustParse("v1.26"): `query GetInstrumentationRules {
     computePlatform {
       instrumentationRules {
         type
@@ -1476,6 +1480,16 @@ var GET_INSTRUMENTATION_RULES = Operation{
         disabled
         mutable
         profileName
+        # Pre-v1.26 scope. sourcesScopes doesn't exist yet on these proxies, and
+        # workloads is removed at v1.26, so this selection is valid for exactly the
+        # v1.11..v1.25 range this bucket serves. The kit needs it to echo the scope
+        # back on update: updateInstrumentationRule is a full replace, so a rule
+        # whose scope was never loaded gets it cleared on any edit.
+        workloads {
+          namespace
+          kind
+          name
+        }
         conditions {
           status
           type
@@ -2173,7 +2187,12 @@ var GET_SOURCE_WITH_DETAILS = Operation{
       pods {
         podName { name value }
         nodeName { name value }
-        agentInjected { name value }
+        # @deprecated-legacy-api(v1.20) - phase is the only k8s pod-health signal legacy
+        # describe offers; status/explain carry the proxy's own verdict per property.
+        # Dropping them regressed the drawer to every healthy pod as 0/N red.
+        # Both exist since v1.11, so they're safe at this bucket's floor.
+        phase { name value status explain }
+        agentInjected { name value status explain }
         containers {
           containerName { name value }
           actualDevices { name value }
@@ -2287,6 +2306,9 @@ var GET_WORKLOADS = Operation{
   }
   serviceName
   dataStreamNames
+  markedForInstrumentation {
+    markedForInstrumentation
+  }
   runtimeInfo {
     detectedLanguages
   }
@@ -2407,6 +2429,336 @@ var GET_WORKLOADS_BY_IDS = Operation{
 	Name: "GET_WORKLOADS_BY_IDS",
 	Variants: map[platform.Type]map[version.Version]string{
 		platform.K8s: {
+			version.MustParse("v1.34"): `query GetWorkloadsByIds($ids: [K8sWorkloadIdInput!]!) {
+    workloadsByIds(ids: $ids) {
+      id {
+        namespace
+        kind
+        name
+      }
+      serviceName
+      dataStreamNames
+      numberOfInstances
+      rollbackOccurred
+      workloadOdigosHealthStatus {
+        name
+        status
+        reasonEnum
+        message
+      }
+      podsAgentInjectionStatus {
+        name
+        status
+        reasonEnum
+        message
+      }
+      podsOdigosHealthStatus {
+        name
+        status
+        reasonEnum
+        message
+      }
+      markedForInstrumentation {
+        markedForInstrumentation
+      }
+      conditions {
+        runtimeDetection {
+          name
+          status
+          reasonEnum
+          message
+        }
+        agentInjectionEnabled {
+          name
+          status
+          reasonEnum
+          message
+        }
+        rollout {
+          name
+          status
+          reasonEnum
+          message
+        }
+podsManifestInjection {
+name
+          status
+          reasonEnum
+          message
+          actionItems {
+            type
+            buttonText
+          }
+        }
+        autoRollback {
+          name
+          status
+          reasonEnum
+          message
+        }
+        agentInjected {
+          name
+          status
+          reasonEnum
+          message
+        }
+        processesAgentHealth {
+          name
+          status
+          reasonEnum
+          message
+        }
+        expectingTelemetry {
+          name
+          status
+          reasonEnum
+          message
+        }
+      }
+rollout {
+        rolloutStatus {
+name
+          status
+          reasonEnum
+          message
+        }
+        agentsMetaHashChangedTime
+        podsManifestInjectionStatus {
+name
+          status
+          reasonEnum
+          message
+          actionItems {
+            type
+            buttonText
+          }
+        }
+        podsManifestInjectionOverview {
+          totalPods
+          totalAgentNotAppliedPods
+          agentNotAppliedOk
+          totalAgentAppliedPods
+          agentAppliedOk
+          totalAgentOutOfDatePods
+          agentOutOfDateOk
+        }
+      }
+      autoRollback {
+        autoRollbackStatus {
+          name
+          status
+          reasonEnum
+          message
+        }
+        rollbackOccurred
+      }
+      runtimeInfo {
+        detectedLanguages
+      }
+      containers {
+        containerName
+        runtimeInfo {
+          language
+          runtimeVersion
+        }
+        agentEnabled {
+          agentEnabled
+          agentEnabledStatus {
+            status
+            reasonEnum
+            message
+            actionItems {
+              type
+              buttonText
+            }
+          }
+          otelDistroName
+        }
+        overrides {
+          containerName
+          otelDistroName
+          allowConcurrentAgents
+          runtimeInfo {
+            language
+            runtimeVersion
+          }
+        }
+        agentConfig {
+          traces {
+            headSampling {
+              dryRun
+              spanMetricsMode
+              noisyOperations {
+                ruleId
+                name
+                disabled
+                operation {
+httpServer {
+                    route
+                    routePrefix
+                    method
+                    queryParams {
+                      name
+                      valueExact
+                    }
+                  }
+                  httpClient {
+                    serverAddress
+                    templatedPath
+                    templatedPathPrefix
+                    method
+                  }
+                }
+                percentageAtMost
+              }
+            }
+          }
+        }
+        collectorConfig {
+          tailSampling {
+            noisyOperations {
+              ruleId
+              name
+              disabled
+              operation {
+                httpServer {
+route
+                  routePrefix
+                  method
+                  queryParams {
+                    name
+                    valueExact
+                  }
+                }
+                httpClient {
+                  serverAddress
+                  templatedPath
+                  templatedPathPrefix
+                  method
+                }
+              }
+              percentageAtMost
+            }
+            highlyRelevantOperations {
+              ruleId
+              name
+              disabled
+              error
+              durationAtLeastMs
+              operation {
+                httpServer {
+                  route
+                  routePrefix
+                  method
+                }
+                kafkaConsumer {
+                  kafkaTopic
+                }
+                kafkaProducer {
+                  kafkaTopic
+                }
+              }
+              percentageAtLeast
+            }
+            costReductionRules {
+              ruleId
+              name
+              disabled
+              operation {
+                httpServer {
+                  route
+                  routePrefix
+                  method
+                }
+                kafkaConsumer {
+                  kafkaTopic
+                }
+                kafkaProducer {
+                  kafkaTopic
+                }
+              }
+              percentageAtMost
+            }
+          }
+        }
+        instrumentations {
+          name
+          healthy
+          message
+          isStandardLibrary
+        }
+      }
+      pods {
+        podName
+        nodeName
+        startTime
+        agentInjected
+        agentInjectedStatus {
+          name
+          status
+          reasonEnum
+          message
+        }
+        k8sHealthStatus {
+          name
+          status
+          reasonEnum
+          message
+        }
+        odigosHealthStatus {
+          name
+          status
+          reasonEnum
+          message
+        }
+        containers {
+          containerName
+          otelDistroName
+          started
+          ready
+          isCrashLoop
+          restartCount
+          runningStartedTime
+          waitingReasonEnum
+          waitingMessage
+          k8sHealthStatus {
+            name
+            status
+            reasonEnum
+            message
+          }
+          odigosHealthStatus {
+            name
+            status
+            reasonEnum
+            message
+          }
+          processes {
+            healthy
+            healthStatus {
+              name
+              status
+              reasonEnum
+              message
+            }
+            identifyingAttributes {
+              name
+              value
+            }
+            instrumentations {
+              name
+              healthy
+              message
+              isStandardLibrary
+            }
+          }
+        }
+      }
+      telemetryMetrics {
+        throughputBytes
+      }
+    }
+  }`,
 			version.MustParse("v1.33"): `query GetWorkloadsByIds($ids: [K8sWorkloadIdInput!]!) {
     workloadsByIds(ids: $ids) {
       id {
@@ -2545,12 +2897,14 @@ name
             status
             reasonEnum
             message
+
           }
           otelDistroName
         }
         overrides {
           containerName
           otelDistroName
+
           runtimeInfo {
             language
             runtimeVersion
@@ -2834,12 +3188,14 @@ route
             status
             reasonEnum
             message
+
           }
           otelDistroName
         }
         overrides {
           containerName
           otelDistroName
+
           runtimeInfo {
             language
             runtimeVersion
@@ -3021,7 +3377,7 @@ route
       }
     }
   }`,
-			version.MustParse("v1.29"): `query GetWorkloadsByIds($ids: [K8sWorkloadIdInput!]!) {
+			version.MustParse("v1.28"): `query GetWorkloadsByIds($ids: [K8sWorkloadIdInput!]!) {
     workloadsByIds(ids: $ids) {
       id {
         namespace
@@ -3123,12 +3479,14 @@ route
             status
             reasonEnum
             message
+
           }
           otelDistroName
         }
         overrides {
           containerName
           otelDistroName
+
           runtimeInfo {
             language
             runtimeVersion
@@ -3414,6 +3772,9 @@ var GET_WORKLOADS_BY_IDS_SLIM = Operation{
   }
   serviceName
   dataStreamNames
+  markedForInstrumentation {
+    markedForInstrumentation
+  }
   runtimeInfo {
     detectedLanguages
   }
