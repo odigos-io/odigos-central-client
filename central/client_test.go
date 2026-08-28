@@ -2,6 +2,7 @@ package central
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -23,17 +24,33 @@ type fakeServer struct {
 }
 
 func newFakeServer(t *testing.T) *fakeServer {
+	return startFakeServer(t, false)
+}
+
+// newTLSFakeServer serves over HTTPS with a self-signed certificate, which is
+// what exercises ClientConfig.InsecureSkipVerify.
+func newTLSFakeServer(t *testing.T) *fakeServer {
+	return startFakeServer(t, true)
+}
+
+func startFakeServer(t *testing.T, useTLS bool) *fakeServer {
 	fs := &fakeServer{
 		t:        t,
 		handlers: map[string]func(map[string]any) (any, []map[string]string){},
 	}
-	fs.server = httptest.NewServer(http.HandlerFunc(fs.serve))
+	h := http.HandlerFunc(fs.serve)
+	if useTLS {
+		fs.server = httptest.NewTLSServer(h)
+	} else {
+		fs.server = httptest.NewServer(h)
+	}
 	t.Cleanup(fs.server.Close)
 	return fs
 }
 
+// URL returns the server's host[:port], the form ClientConfig.Hostname wants.
 func (fs *fakeServer) URL() string {
-	return strings.TrimPrefix(fs.server.URL, "http://")
+	return fs.server.Listener.Addr().String()
 }
 
 // onOperation registers a fake response keyed by the GraphQL operation name.
@@ -599,6 +616,103 @@ func TestSanitizeResponseRedactsTokens(t *testing.T) {
 		t.Errorf("non-sensitive fields should be preserved: %s", got)
 	}
 }
+
+// InsecureSkipVerify must keep the connection on HTTPS while accepting the
+// fake server's self-signed certificate.
+func TestNewClient_InsecureSkipVerifyAcceptsSelfSignedCert(t *testing.T) {
+	fs := newTLSFakeServer(t)
+	configureFakeAuthAndHandshake(fs, "v1.22.0")
+
+	c, err := NewClient(context.Background(), ClientConfig{
+		Hostname:           fs.URL(),
+		Username:           "u@example.com",
+		Password:           "secret",
+		InsecureSkipVerify: true,
+	})
+	if err != nil {
+		t.Fatalf("NewClient: %v", err)
+	}
+	if c.Version().String() != "v1.22" {
+		t.Errorf("client version = %s, want v1.22", c.Version())
+	}
+}
+
+// Without InsecureSkipVerify an untrusted certificate must be rejected rather
+// than quietly accepted.
+func TestNewClient_VerifiesCertificateByDefault(t *testing.T) {
+	fs := newTLSFakeServer(t)
+	configureFakeAuthAndHandshake(fs, "v1.22.0")
+
+	_, err := NewClient(context.Background(), ClientConfig{
+		Hostname: fs.URL(),
+		Username: "u",
+		Password: "p",
+	})
+	if err == nil {
+		t.Fatal("expected a TLS verification error, got nil")
+	}
+	var certErr *tls.CertificateVerificationError
+	if !errors.As(err, &certErr) {
+		t.Fatalf("expected a certificate verification error, got %T: %v", err, err)
+	}
+}
+
+// InsecureSkipVerify must not leak into a caller-supplied http.Client, which
+// they may be sharing with other, verification-required connections.
+func TestHTTPClientFor_DoesNotMutateCallerClient(t *testing.T) {
+	base := &http.Transport{}
+	caller := &http.Client{Transport: base}
+
+	got, err := httpClientFor(ClientConfig{HTTPClient: caller, InsecureSkipVerify: true})
+	if err != nil {
+		t.Fatalf("httpClientFor: %v", err)
+	}
+	if got == caller {
+		t.Fatal("expected a copy of the caller's client, got the same pointer")
+	}
+	if base.TLSClientConfig != nil && base.TLSClientConfig.InsecureSkipVerify {
+		t.Error("caller's transport was mutated")
+	}
+	tr, ok := got.Transport.(*http.Transport)
+	if !ok {
+		t.Fatalf("transport = %T, want *http.Transport", got.Transport)
+	}
+	if tr.TLSClientConfig == nil || !tr.TLSClientConfig.InsecureSkipVerify {
+		t.Error("InsecureSkipVerify was not applied to the returned client")
+	}
+}
+
+// A non-*http.Transport RoundTripper has no TLS config we can reach, so the
+// request to skip verification must fail loudly instead of being ignored.
+func TestHTTPClientFor_RejectsUnknownRoundTripper(t *testing.T) {
+	caller := &http.Client{Transport: roundTripperFunc(func(*http.Request) (*http.Response, error) {
+		return nil, nil
+	})}
+
+	if _, err := httpClientFor(ClientConfig{HTTPClient: caller, InsecureSkipVerify: true}); err == nil {
+		t.Fatal("expected an error for a custom RoundTripper, got nil")
+	}
+}
+
+// Insecure means plain HTTP, where there is no certificate to verify, so
+// InsecureSkipVerify should be a no-op rather than an error.
+func TestHTTPClientFor_InsecureIgnoresSkipVerify(t *testing.T) {
+	caller := &http.Client{Transport: roundTripperFunc(func(*http.Request) (*http.Response, error) {
+		return nil, nil
+	})}
+
+	got, err := httpClientFor(ClientConfig{HTTPClient: caller, Insecure: true, InsecureSkipVerify: true})
+	if err != nil {
+		t.Fatalf("httpClientFor: %v", err)
+	}
+	if got != caller {
+		t.Error("expected the caller's client to be used as-is over plain HTTP")
+	}
+}
+
+type roundTripperFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripperFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
 
 // Sanity: ensure the fake server constructed an http server reachable.
 func TestFakeServerReachable(t *testing.T) {
