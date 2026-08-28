@@ -16,6 +16,7 @@ package central
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"net/http"
@@ -67,11 +68,19 @@ type ClientConfig struct {
 	// every subsequent request.
 	Username string
 	Password string
-	// HTTPClient is optional; if nil, http.DefaultClient is used.
+	// HTTPClient is optional; if nil, a client bounded by DefaultHTTPTimeout
+	// is used.
 	HTTPClient *http.Client
 	// Insecure switches the protocol to plain HTTP. False (HTTPS) is the
 	// default and recommended for production.
 	Insecure bool
+	// InsecureSkipVerify keeps HTTPS but disables certificate and hostname
+	// verification. The connection stays encrypted yet becomes open to
+	// man-in-the-middle attacks, so this is only appropriate for a Central
+	// server presenting a self-signed or otherwise untrusted certificate
+	// (e.g. a dev or test cluster). It has no effect when Insecure is set,
+	// since plain HTTP presents no certificate to verify.
+	InsecureSkipVerify bool
 }
 
 // NewClient authenticates against Central, performs the version handshake,
@@ -83,9 +92,9 @@ type ClientConfig struct {
 //   - *GraphQLError when the SignIn or systemConfig query fails.
 //   - any transport-level error from the underlying http.Client.
 func NewClient(ctx context.Context, cfg ClientConfig, opts ...logger.LoggingOption) (*CentralClient, error) {
-	hc := cfg.HTTPClient
-	if hc == nil {
-		hc = &http.Client{Timeout: DefaultHTTPTimeout}
+	hc, err := httpClientFor(cfg)
+	if err != nil {
+		return nil, err
 	}
 
 	scheme := "https"
@@ -106,6 +115,44 @@ func NewClient(ctx context.Context, cfg ClientConfig, opts ...logger.LoggingOpti
 		return nil, err
 	}
 	return c, nil
+}
+
+// httpClientFor resolves the *http.Client NewClient will use, applying
+// cfg.InsecureSkipVerify on top of the caller's client if one was supplied.
+// A caller-supplied client is never mutated: both it and its transport are
+// copied before the TLS setting is applied, so the same client can be reused
+// elsewhere with verification intact.
+func httpClientFor(cfg ClientConfig) (*http.Client, error) {
+	hc := cfg.HTTPClient
+	if hc == nil {
+		hc = &http.Client{Timeout: DefaultHTTPTimeout}
+	}
+	// Over plain HTTP there is no certificate to verify, so there is nothing
+	// to apply and no reason to reject an unusual transport.
+	if !cfg.InsecureSkipVerify || cfg.Insecure {
+		return hc, nil
+	}
+
+	base := hc.Transport
+	if base == nil {
+		base = http.DefaultTransport
+	}
+	ht, ok := base.(*http.Transport)
+	if !ok {
+		return nil, fmt.Errorf("InsecureSkipVerify requires HTTPClient.Transport to be *http.Transport (got %T); set TLSClientConfig.InsecureSkipVerify on your own transport instead", base)
+	}
+
+	// Clone deep-copies TLSClientConfig, so this cannot disable verification
+	// for anything else sharing the original transport.
+	cloned := ht.Clone()
+	if cloned.TLSClientConfig == nil {
+		cloned.TLSClientConfig = &tls.Config{}
+	}
+	cloned.TLSClientConfig.InsecureSkipVerify = true
+
+	out := *hc
+	out.Transport = cloned
+	return &out, nil
 }
 
 // Version returns the Central server version detected during the handshake.
