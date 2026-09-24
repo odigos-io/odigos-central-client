@@ -1334,6 +1334,77 @@ var GET_INSTRUMENTATION_RULES = Operation{
 	Name: "GET_INSTRUMENTATION_RULES",
 	Variants: map[platform.Type]map[version.Version]string{
 		platform.K8s: {
+			version.MustParse("v1.38"): `query GetInstrumentationRules {
+    computePlatform {
+      instrumentationRules {
+        type
+        ruleId
+        ruleName
+        notes
+        disabled
+        mutable
+        profileName
+        managedBy
+        sourcesScopes { sources { namespace kind name }
+  namespaces
+  languages }
+        conditions {
+          status
+          type
+          reason
+          message
+
+        }
+        payloadCollection {
+          httpRequest {
+            mimeTypes
+            maxPayloadLength
+            dropPartialPayloads
+          }
+          httpResponse {
+            mimeTypes
+            maxPayloadLength
+            dropPartialPayloads
+          }
+          dbQuery {
+            maxPayloadLength
+            dropPartialPayloads
+          }
+          messaging {
+            maxPayloadLength
+            dropPartialPayloads
+          }
+        }
+        codeAttributes {
+          column
+          filePath
+          function
+          lineNumber
+          namespace
+          stacktrace
+        }
+        headersCollection {
+          headerKeys
+        }
+        customInstrumentations {
+          golang {
+            packageName
+            functionName
+            receiverName
+            receiverMethodName
+          }
+          java {
+            methodName
+            className
+          }
+          php {
+            className
+            functionName
+          }
+        }
+      }
+    }
+  }`,
 			version.MustParse("v1.33"): `query GetInstrumentationRules {
     computePlatform {
       instrumentationRules {

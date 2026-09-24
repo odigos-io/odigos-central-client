@@ -160,6 +160,7 @@ const GET_CLOUD_CONNECTOR_PROVIDERS = `query GetCloudConnectorProviders {
         secret
         tooltip
         initialValue
+        showInUi
         envVar
       }
       auth {
@@ -179,6 +180,7 @@ const GET_CLOUD_CONNECTOR_PROVIDERS = `query GetCloudConnectorProviders {
             secret
             tooltip
             initialValue
+            showInUi
             envVar
           }
         }
@@ -348,14 +350,6 @@ const GET_USERS = `query GetUsers {
       username
       role
       needsPasswordChange
-      teams {
-        id
-        name
-      }
-      computePlatforms {
-        id
-        name
-      }
     }
   }`
 
