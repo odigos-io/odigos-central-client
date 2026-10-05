@@ -98,6 +98,22 @@ const DELETE_USER = `mutation DeleteUser($userID: String!) {
     }
   }`
 
+// DOWNLOAD_DIAGNOSE is a central-scoped GraphQL operation. It does not vary by
+// proxy version because it targets Central directly.
+const DOWNLOAD_DIAGNOSE = `query DownloadDiagnose($proxyID: String!, $input: DiagnoseInput, $dryRun: Boolean) {
+    diagnose(proxyID: $proxyID, input: $input, dryRun: $dryRun) {
+      stats {
+        fileCount
+        totalSizeBytes
+        totalSizeHuman
+      }
+      includeProfiles
+      includeMetrics
+      includeSourceWorkloads
+      sourceWorkloadNamespaces
+    }
+  }`
+
 // ENSURE_OIDC_IDENTITY_PROVIDER is a central-scoped GraphQL operation. It does not vary by
 // proxy version because it targets Central directly.
 const ENSURE_OIDC_IDENTITY_PROVIDER = `mutation EnsureOidcIdentityProvider($input: OidcIdentityProviderInput!) {
