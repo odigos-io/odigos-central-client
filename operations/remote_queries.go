@@ -768,6 +768,31 @@ var GET_DESTINATIONS = Operation{
 	Name: "GET_DESTINATIONS",
 	Variants: map[platform.Type]map[version.Version]string{
 		platform.K8s: {
+			version.MustParse("v1.26"): `query GetDestinations {
+    computePlatform {
+      destinations {
+        id
+        name
+        disabled
+        dataStreamNames
+        fields
+        exportedSignals { logs metrics traces profiles }
+        destinationType {
+          type
+          imageUrl
+          displayName
+          supportedSignals { logs { supported } metrics { supported } traces { supported } profiles { supported } }
+        }
+        conditions {
+          status
+          type
+          reason
+          message
+
+        }
+      }
+    }
+  }`,
 			version.MustParse("v1.20"): `query GetDestinations {
     computePlatform {
       destinations {
@@ -776,26 +801,12 @@ var GET_DESTINATIONS = Operation{
         disabled
         dataStreamNames
         fields
-        exportedSignals {
-          logs
-          metrics
-          traces
-        }
+        exportedSignals { logs metrics traces }
         destinationType {
           type
           imageUrl
           displayName
-          supportedSignals {
-            logs {
-              supported
-            }
-            metrics {
-              supported
-            }
-            traces {
-              supported
-            }
-          }
+          supportedSignals { logs { supported } metrics { supported } traces { supported } }
         }
         conditions {
           status
@@ -818,6 +829,36 @@ var GET_DESTINATION_CATEGORIES = Operation{
 	Name: "GET_DESTINATION_CATEGORIES",
 	Variants: map[platform.Type]map[version.Version]string{
 		platform.K8s: {
+			version.MustParse("v1.26"): `query GetDestinationCategories {
+    destinationCategories {
+      categories {
+        name
+        description
+        items {
+          type
+          testConnectionSupported
+          displayName
+          imageUrl
+          supportedSignals { logs { supported } metrics { supported } traces { supported } profiles { supported } }
+          fields {
+            name
+            displayName
+            componentType
+            componentProperties
+            secret
+            initialValue
+            renderCondition
+            hideFromReadData
+            customReadDataLabels {
+              condition
+              title
+              value
+            }
+          }
+        }
+      }
+    }
+  }`,
 			version.MustParse("v1.20"): `query GetDestinationCategories {
     destinationCategories {
       categories {
@@ -828,17 +869,7 @@ var GET_DESTINATION_CATEGORIES = Operation{
           testConnectionSupported
           displayName
           imageUrl
-          supportedSignals {
-            logs {
-              supported
-            }
-            metrics {
-              supported
-            }
-            traces {
-              supported
-            }
-          }
+          supportedSignals { logs { supported } metrics { supported } traces { supported } }
           fields {
             name
             displayName
