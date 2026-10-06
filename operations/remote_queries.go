@@ -2,6 +2,10 @@
 //
 // Source: central-ui/src/graphql/{queries,mutations}/**/*.ts
 // Regenerate with: go generate ./operations
+//
+// The GraphQL documents below are generated from the Odigos Central UI
+// sources (github.com/odigos-io/odigos-enterprise, central-ui) and are
+// published by Odigos as part of this module under the Apache License 2.0.
 
 package operations
 
