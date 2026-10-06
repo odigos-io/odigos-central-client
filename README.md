@@ -1,6 +1,11 @@
 # Odigos Central Client
 
-A Go library for interacting with the Odigos Central GraphQL API.
+A Go client for the [Odigos Central](https://docs.odigos.io/central/overview) GraphQL API.
+It signs in to a Central server, performs a version handshake, and exposes typed operations
+for the connected clusters (compute platforms), their namespaces, and their sources.
+
+This module is the backend of the Odigos Central Terraform provider, and can be used
+directly by any Go program that needs to automate Central.
 
 ## Installation
 
@@ -8,145 +13,185 @@ A Go library for interacting with the Odigos Central GraphQL API.
 go get github.com/odigos-io/odigos-central-client
 ```
 
+Requires Go 1.24 or newer. The module depends only on the Go standard library.
+
 ## Usage
 
-### Creating a Client
+### Creating a client
 
-The client authenticates with username and password (SignIn); an access token is obtained automatically.
+`central.NewClient` authenticates with a username and password through the `SignIn`
+mutation, checks that the server version is supported, and returns a `*central.CentralClient`.
+The access token is attached to every subsequent request automatically.
 
 ```go
 package main
 
 import (
     "context"
-    "github.com/odigos-io/odigos-central-client"
+    "fmt"
+    "log"
+
+    "github.com/odigos-io/odigos-central-client/central"
 )
 
 func main() {
     ctx := context.Background()
-    client, err := odigos.NewClient(ctx, odigos.ClientConfig{
-        Hostname: "your-odigos-instance.com",
-        Username: "your-email@example.com",
+
+    client, err := central.NewClient(ctx, central.ClientConfig{
+        Hostname: "central.example.com:8081",
+        Username: "user@example.com",
         Password: "your-password",
-        Insecure: false, // use true for http:// instead of https://
     })
     if err != nil {
-        // handle sign-in error
+        log.Fatal(err)
     }
+
     platforms, err := client.GetComputePlatforms(ctx)
-    // ...
+    if err != nil {
+        log.Fatal(err)
+    }
+    for _, p := range platforms {
+        fmt.Printf("%s (%s) odigos %s\n", p.Name, p.ID, p.OdigosVersion)
+    }
 }
 ```
 
-### Client Configuration
+### Client configuration
 
-`ClientConfig` supports:
+`central.ClientConfig` fields:
 
-- **Hostname** – Odigos Central host (e.g. `central.odigos.io`)
-- **Username** – Email for sign-in
-- **Password** – Password for sign-in
-- **Insecure** – If true, use `http://` instead of `https://`
-- **HTTPClient** – Optional custom `*http.Client` (defaults to `http.DefaultClient`)
+| Field | Description |
+|-------|-------------|
+| `Hostname` | Central server host and optional port, for example `central.example.com:8081`. |
+| `Username` | Email of a Central user. |
+| `Password` | Password for that user. |
+| `HTTPClient` | Optional `*http.Client`. When nil, a client with a 30 second timeout (`central.DefaultHTTPTimeout`) is used. |
+| `Insecure` | Use plain `http://` instead of `https://`. Off by default. |
+| `InsecureSkipVerify` | Keep HTTPS but skip certificate and hostname verification. Only for a Central server with a self-signed certificate. Ignored when `Insecure` is set. |
 
-`NewClient` returns `*OdigosClient`. Optional logger options can be passed as variadic arguments:
+### Logging
+
+`NewClient` accepts logger options. By default a `slog` logger writing to stderr is used;
+its level comes from the `ODIGOS_LOG` environment variable (`DEBUG`, `INFO`, `WARN`, or
+`ERROR`, default `INFO`).
 
 ```go
 import "github.com/odigos-io/odigos-central-client/logger"
 
-// Use a custom logger (must implement logger.CustomLogger).
-client, err := odigos.NewClient(ctx, config, logger.WithLogger(myLogger))
+// myLogger must implement logger.CustomLogger.
+client, err := central.NewClient(ctx, cfg, logger.WithLogger(myLogger))
 ```
 
-If you omit options, a default `logger.NewSlogLogger` is used. Its level is controlled by the `ODIGOS_LOG` environment variable (`DEBUG`, `INFO`, `WARN`, or `ERROR`; default `INFO`).
-
-### API Methods (`*OdigosClient`)
-
-All methods take `context.Context` as the first argument. Methods that target a specific cluster use a `proxyID` (compute platform ID).
+### Central-scoped operations (`*central.CentralClient`)
 
 | Method | Description |
 |--------|-------------|
-| `GetComputePlatforms(ctx)` | Returns all compute platforms (clusters). No `proxyID`. |
-| `GetNamespaces(ctx, proxyID)` | Lists Kubernetes namespaces for a cluster. |
-| `GetNamespace(ctx, proxyID, namespaceName)` | Returns details for one namespace. |
-| `GetSources(ctx, proxyID)` | Lists observability sources for a cluster. |
-| `GetSource(ctx, proxyID, sourceID)` | Returns one source by ID (kind, name, namespace). |
-| `PersistSources(ctx, proxyID, sources)` | Persists source selection (e.g. data stream names). |
-| `PersistNamespaceSources(ctx, proxyID, namespaces)` | Persists namespace-level source selection. |
+| `GetComputePlatforms(ctx)` | Lists every cluster connected to Central. Successful results are cached. |
+| `ResetPlatforms()` | Clears the cached cluster list. |
+| `FindPlatformByName(ctx, name)` | Resolves a cluster name to its `types.ComputePlatform`. |
+| `Proxy(ctx, proxyID)` | Returns a `*central.ProxyClient` for one cluster, by compute platform ID. |
+| `ProxyByName(ctx, name)` | Same as `Proxy`, keyed by cluster name. |
+| `Version()` | The Central server version detected during the handshake. |
 
-### Logger package (`logger`)
+### Cluster-scoped operations (`*central.ProxyClient`)
 
-| Function | Description |
-|----------|-------------|
-| `NewSlogLogger()` | Default stderr `slog` logger used when no `WithLogger` is passed. |
-| `WithLogger(CustomLogger)` | Returns a `LoggingOption` for `NewClient`. |
+Cluster operations go through Central's `remoteFetch` proxy. The client picks the GraphQL
+document that matches the cluster's Odigos version, so one `CentralClient` can drive
+clusters running different versions.
 
-### Advanced: `UnmarshalRemoteFetch`
+| Method | Description |
+|--------|-------------|
+| `GetSources(ctx)` | Lists every source on the cluster. |
+| `GetSource(ctx, types.SourceID{Kind, Name, Namespace})` | Returns one source with its conditions and containers. |
+| `GetNamespaces(ctx)` | Lists the cluster's namespaces. |
+| `GetNamespace(ctx, name)` | Returns one namespace with its sources. |
+| `PersistSources(ctx, []types.SourceInput)` | Selects or deselects sources. Returns the mutation's success flag. |
+| `PersistNamespaceSources(ctx, []types.NamespaceInput)` | Selects or deselects whole namespaces. |
+| `ID()`, `Name()`, `Version()`, `Platform()` | Identity and version of the cluster behind the proxy. |
 
-Cluster-scoped GraphQL calls go through Central’s `remoteFetch` proxy. If you have a raw GraphQL response body (bytes) from that flow, you can parse the nested payload with the generic helper:
-
-| Function | Description |
-|----------|-------------|
-| `UnmarshalRemoteFetch[T](graphqlResp []byte) (*T, error)` | Unmarshals the outer response and inner remote GraphQL JSON into `T`. Useful for tests or custom clients; `*OdigosClient` already uses this internally. |
-
-### Example: List platforms and then sources
+### Example: list sources on every cluster
 
 ```go
-ctx := context.Background()
-client, err := odigos.NewClient(ctx, odigos.ClientConfig{
-    Hostname: "central.odigos.io",
-    Username: "user@example.com",
-    Password: "secret",
-})
-if err != nil {
-    log.Fatal(err)
-}
-
 platforms, err := client.GetComputePlatforms(ctx)
 if err != nil {
     log.Fatal(err)
 }
 
 for _, p := range platforms {
-    sources, err := client.GetSources(ctx, p.ID)
+    proxy, err := client.Proxy(ctx, p.ID)
     if err != nil {
-        log.Printf("GetSources(%s): %v", p.ID, err)
+        // Clusters running an unsupported Odigos version are reported per cluster.
+        if central.IsUnsupported(err) {
+            log.Printf("skipping %s: %v", p.Name, err)
+            continue
+        }
+        log.Fatal(err)
+    }
+
+    sources, err := proxy.GetSources(ctx)
+    if err != nil {
+        log.Printf("GetSources(%s): %v", p.Name, err)
         continue
     }
     for _, s := range sources {
-        fmt.Printf("%s/%s %s\n", s.Namespace, s.Name, s.Kind)
+        fmt.Printf("%s %s/%s selected=%t\n", s.Kind, s.Namespace, s.Name, s.Selected)
     }
 }
 ```
 
-### Example: Persist source selection
+### Example: select a source
 
 ```go
-sources := []odigos.SourceInput{
-    {
-        Namespace:         "default",
-        Name:              "my-deployment",
-        Kind:              "Deployment",
-        Selected:          true,
-        CurrentStreamName: "default",
-    },
-}
-ok, err := client.PersistSources(ctx, proxyID, sources)
+import "github.com/odigos-io/odigos-central-client/types"
+
+proxy, err := client.ProxyByName(ctx, "prod-us-east")
 if err != nil {
     log.Fatal(err)
 }
-// ok indicates success
+
+ok, err := proxy.PersistSources(ctx, []types.SourceInput{{
+    Namespace:         "default",
+    Name:              "my-deployment",
+    Kind:              "Deployment",
+    Selected:          true,
+    CurrentStreamName: "default",
+}})
+if err != nil {
+    log.Fatal(err)
+}
+fmt.Println("persisted:", ok)
 ```
 
-### Types
+### Errors
 
-Input and result types used by the API (e.g. `ComputePlatform`, `Source`, `SourceInput`, `SourceId`, `K8sActualNamespace`, `K8sActualNamespaceDetail`, `NamespaceInput`) are defined in the package. See the package documentation or `responseStructs.go` for field details.
+`NewClient` and the proxy methods return typed errors you can inspect with `errors.As`:
 
-## Dependencies
+| Error | Meaning |
+|-------|---------|
+| `*central.UnsupportedCentralVersionError` | The server is older than `central.MinCentralVersion`. |
+| `*central.UnsupportedProxyVersionError` | The cluster's Odigos version is older than `central.MinProxyVersion`. |
+| `*central.UnsupportedProxyPlatformError` | The cluster's platform type is not recognised. |
+| `*central.GraphQLError` | The server returned GraphQL errors. `Messages()` lists them. |
 
-This library uses the Go standard library for HTTP and JSON.
+`central.IsUnsupported(err)` reports whether `err` is any of the unsupported-version errors.
 
-No third-party GraphQL client is required; requests are implemented with `net/http` and `encoding/json`.
+## Packages
+
+| Package | Contents |
+|---------|----------|
+| `central` | `CentralClient`, `ProxyClient`, `ClientConfig`, and the error types. |
+| `types` | Result and input types such as `ComputePlatform`, `Source`, `SourceInput`, `K8sActualNamespace`, and `NamespaceInput`. |
+| `operations` | Generated GraphQL documents, one variant per supported Odigos version. |
+| `logger` | `CustomLogger` interface and the default `slog` logger. |
+| `platform` | Cluster platform types. |
+| `version` | Minimal `vMAJOR.MINOR` version parsing and comparison. |
+
+## Regenerating the GraphQL operations
+
+The files under `operations/` are generated by `tools/gen-graphql` from the Odigos Central
+UI sources and should not be edited by hand. They are regenerated automatically when the
+Central API changes.
 
 ## License
 
-[Your License Here]
+[Apache License 2.0](LICENSE)
