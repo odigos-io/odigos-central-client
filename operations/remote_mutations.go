@@ -448,6 +448,79 @@ var CREATE_INSTRUMENTATION_RULE = Operation{
 	Name: "CREATE_INSTRUMENTATION_RULE",
 	Variants: map[platform.Type]map[version.Version]string{
 		platform.K8s: {
+			version.MustParse("v1.40"): `mutation CreateInstrumentationRule($instrumentationRule: InstrumentationRuleInput!) {
+    createInstrumentationRule(instrumentationRule: $instrumentationRule) {
+      type
+      ruleId
+      ruleName
+      notes
+      disabled
+      mutable
+      profileName
+      managedBy
+      sourcesScopes { sources { namespace kind name }
+  namespaces
+  languages }
+      payloadCollection {
+        httpRequest {
+          mimeTypes
+          maxPayloadLength
+          dropPartialPayloads
+        }
+        httpResponse {
+          mimeTypes
+          maxPayloadLength
+          dropPartialPayloads
+        }
+        dbQuery {
+          maxPayloadLength
+          dropPartialPayloads
+        }
+        messaging {
+          maxPayloadLength
+          dropPartialPayloads
+        }
+      }
+      codeAttributes {
+        column
+        filePath
+        function
+        lineNumber
+        namespace
+        stacktrace
+      }
+      headersCollection {
+        headerKeys
+      }
+      customInstrumentations {
+        golang {
+          packageName
+          functionName
+          receiverName
+          receiverMethodName
+        }
+        java {
+          methodName
+          className
+        }
+        php {
+          className
+          functionName
+        }
+      }
+      kernelTraces {
+        filesystem {
+          enabled
+        }
+        subprocesses {
+          recordCommandArgs
+        }
+        cpuDelay {
+          enabled
+        }
+      }
+    }
+  }`,
 			version.MustParse("v1.38"): `mutation CreateInstrumentationRule($instrumentationRule: InstrumentationRuleInput!) {
     createInstrumentationRule(instrumentationRule: $instrumentationRule) {
       type
@@ -1365,6 +1438,79 @@ var UPDATE_INSTURMENTATION_RULE = Operation{
 	Name: "UPDATE_INSTURMENTATION_RULE",
 	Variants: map[platform.Type]map[version.Version]string{
 		platform.K8s: {
+			version.MustParse("v1.40"): `mutation UpdateInstrumentationRule($ruleId: ID!, $instrumentationRule: InstrumentationRuleInput!) {
+    updateInstrumentationRule(ruleId: $ruleId, instrumentationRule: $instrumentationRule) {
+      type
+      ruleId
+      ruleName
+      notes
+      disabled
+      mutable
+      profileName
+      managedBy
+      sourcesScopes { sources { namespace kind name }
+  namespaces
+  languages }
+      payloadCollection {
+        httpRequest {
+          mimeTypes
+          maxPayloadLength
+          dropPartialPayloads
+        }
+        httpResponse {
+          mimeTypes
+          maxPayloadLength
+          dropPartialPayloads
+        }
+        dbQuery {
+          maxPayloadLength
+          dropPartialPayloads
+        }
+        messaging {
+          maxPayloadLength
+          dropPartialPayloads
+        }
+      }
+      codeAttributes {
+        column
+        filePath
+        function
+        lineNumber
+        namespace
+        stacktrace
+      }
+      headersCollection {
+        headerKeys
+      }
+      customInstrumentations {
+        golang {
+          packageName
+          functionName
+          receiverName
+          receiverMethodName
+        }
+        java {
+          methodName
+          className
+        }
+        php {
+          className
+          functionName
+        }
+      }
+      kernelTraces {
+        filesystem {
+          enabled
+        }
+        subprocesses {
+          recordCommandArgs
+        }
+        cpuDelay {
+          enabled
+        }
+      }
+    }
+  }`,
 			version.MustParse("v1.38"): `mutation UpdateInstrumentationRule($ruleId: ID!, $instrumentationRule: InstrumentationRuleInput!) {
     updateInstrumentationRule(ruleId: $ruleId, instrumentationRule: $instrumentationRule) {
       type

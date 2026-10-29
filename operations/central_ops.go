@@ -171,6 +171,10 @@ const GET_CLOUD_CONNECTOR_PROVIDERS = `query GetCloudConnectorProviders {
     cloudConnectorProviders {
       provider
       displayName
+      bootstrapRegion {
+        defaultRegion
+        supportedRegions
+      }
       connectorFields {
         name
         displayName
@@ -227,6 +231,7 @@ const GET_CLOUD_CONNECTOR_PROVIDERS = `query GetCloudConnectorProviders {
           section
           variant
           variantLabel
+          language
           title
           description
           steps
@@ -271,8 +276,23 @@ const GET_COMPUTE_PLATFORMS = `query GetComputePlatforms {
       graphqlSchemaVersion
       type
       status
+      collectors {
+        type
+        management
+        deployment
+        mode
+      }
       connectedAt
       lastSeenAt
+      stats {
+        workloads
+        instrumentedWorkloads
+        workloadsWithIssues
+        workloadsInProgress
+        namespaces
+        autoInstrumentedNamespaces
+        updatedAt
+      }
       users {
         id
         email
@@ -323,6 +343,24 @@ const GET_HEALTH = `query GetHealth {
           message
         }
       }
+    }
+  }`
+
+// GET_IDENTITY_PROVIDERS is a central-scoped GraphQL operation. It does not vary by
+// proxy version because it targets Central directly.
+const GET_IDENTITY_PROVIDERS = `query IdentityProviders {
+    identityProviders {
+      providerId
+      protocol
+      enabled
+      callbackUrl
+      clientId
+      discoveryUrl
+      tenantId
+      hasClientSecret
+      idpEntityId
+      singleSignOnServiceUrl
+      hasSigningCertificate
     }
   }`
 
@@ -392,8 +430,8 @@ const REMOTE_MULTI_FETCH = `query RemoteMultiFetch($proxyIDs: [String!]!, $query
 
 // SET_INITIAL_PASSWORD is a central-scoped GraphQL operation. It does not vary by
 // proxy version because it targets Central directly.
-const SET_INITIAL_PASSWORD = `mutation SetInitialPassword($email: String!, $password: String!) {
-    setInitialPassword(email: $email, password: $password) {
+const SET_INITIAL_PASSWORD = `mutation SetInitialPassword($email: String!, $oneTimePassword: String!, $password: String!) {
+    setInitialPassword(email: $email, oneTimePassword: $oneTimePassword, password: $password) {
       idToken
       accessToken
       status
@@ -455,6 +493,15 @@ const TEST_CLOUD_CONNECTOR_CONNECTION = `mutation TestCloudConnectorConnection($
         message
         remediation
       }
+    }
+  }`
+
+// UPDATE_CLOUD_CONNECTOR_COLLECTORS is a central-scoped GraphQL operation. It does not vary by
+// proxy version because it targets Central directly.
+const UPDATE_CLOUD_CONNECTOR_COLLECTORS = `mutation UpdateCloudConnectorCollectors($connectorId: String!, $collectors: [CloudConnectorCollectorCapabilityInput!]!) {
+    updateCloudConnectorCollectors(connectorId: $connectorId, collectors: $collectors) {
+      success
+      error
     }
   }`
 
