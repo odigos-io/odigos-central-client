@@ -405,16 +405,6 @@ var GET_CONFIG = Operation{
     }
   }`,
 		},
-		platform.Vm: {
-			version.MustParse("v0.1"): `query GetConfig {
-    config {
-      tier
-      readonly
-      installationMethod
-      installationStatus
-    }
-  }`,
-		},
 	},
 }
 
@@ -1362,6 +1352,55 @@ var GET_GATEWAY_PODS = Operation{
 	},
 }
 
+// GET_GO_OFFSETS is a remote (cluster-scoped) GraphQL operation. Its document
+// varies by proxy platform type and Odigos version; use Operation.Pick to
+// select the right variant for a given proxy.
+var GET_GO_OFFSETS = Operation{
+	Name: "GET_GO_OFFSETS",
+	Variants: map[platform.Type]map[version.Version]string{
+		platform.K8s: {
+			version.MustParse("v1.38"): `query GetGoOffsets {
+    goOffsets {
+      installed
+      timestamp
+      mods {
+        module
+        minVersion
+        maxVersion
+        minorVersions {
+          minorVersion
+          versions
+        }
+      }
+    }
+  }`,
+		},
+	},
+}
+
+// GET_INSTRUMENTATION_AGENTS is a remote (cluster-scoped) GraphQL operation. Its document
+// varies by proxy platform type and Odigos version; use Operation.Pick to
+// select the right variant for a given proxy.
+var GET_INSTRUMENTATION_AGENTS = Operation{
+	Name: "GET_INSTRUMENTATION_AGENTS",
+	Variants: map[platform.Type]map[version.Version]string{
+		platform.K8s: {
+			version.MustParse("v1.38"): `query GetInstrumentationAgents {
+    instrumentationAgents {
+      language
+      distroName
+      distroDisplayName
+      description
+      runtimeEnvironment
+      supportedRuntimeVersions
+      sources
+      isDefault
+    }
+  }`,
+		},
+	},
+}
+
 // GET_INSTRUMENTATION_RULES is a remote (cluster-scoped) GraphQL operation. Its document
 // varies by proxy platform type and Odigos version; use Operation.Pick to
 // select the right variant for a given proxy.
@@ -1369,6 +1408,88 @@ var GET_INSTRUMENTATION_RULES = Operation{
 	Name: "GET_INSTRUMENTATION_RULES",
 	Variants: map[platform.Type]map[version.Version]string{
 		platform.K8s: {
+			version.MustParse("v1.40"): `query GetInstrumentationRules {
+    computePlatform {
+      instrumentationRules {
+        type
+        ruleId
+        ruleName
+        notes
+        disabled
+        mutable
+        profileName
+        managedBy
+        sourcesScopes { sources { namespace kind name }
+  namespaces
+  languages }
+        conditions {
+          status
+          type
+          reason
+          message
+
+        }
+        payloadCollection {
+          httpRequest {
+            mimeTypes
+            maxPayloadLength
+            dropPartialPayloads
+          }
+          httpResponse {
+            mimeTypes
+            maxPayloadLength
+            dropPartialPayloads
+          }
+          dbQuery {
+            maxPayloadLength
+            dropPartialPayloads
+          }
+          messaging {
+            maxPayloadLength
+            dropPartialPayloads
+          }
+        }
+        codeAttributes {
+          column
+          filePath
+          function
+          lineNumber
+          namespace
+          stacktrace
+        }
+        headersCollection {
+          headerKeys
+        }
+        customInstrumentations {
+          golang {
+            packageName
+            functionName
+            receiverName
+            receiverMethodName
+          }
+          java {
+            methodName
+            className
+          }
+          php {
+            className
+            functionName
+          }
+        }
+        kernelTraces {
+          filesystem {
+            enabled
+          }
+          subprocesses {
+            recordCommandArgs
+          }
+          cpuDelay {
+            enabled
+          }
+        }
+      }
+    }
+  }`,
 			version.MustParse("v1.38"): `query GetInstrumentationRules {
     computePlatform {
       instrumentationRules {
@@ -1690,6 +1811,73 @@ var GET_K8S_MANIFEST = Operation{
 		platform.K8s: {
 			version.MustParse("v1.20"): `query GetK8sManifest($namespace: String!, $kind: K8sResourceKind!, $name: String!) {
     k8sManifest(namespace: $namespace, kind: $kind, name: $name)
+  }`,
+		},
+	},
+}
+
+// GET_LIVE_TRAFFIC_LEARNING is a remote (cluster-scoped) GraphQL operation. Its document
+// varies by proxy platform type and Odigos version; use Operation.Pick to
+// select the right variant for a given proxy.
+var GET_LIVE_TRAFFIC_LEARNING = Operation{
+	Name: "GET_LIVE_TRAFFIC_LEARNING",
+	Variants: map[platform.Type]map[version.Version]string{
+		platform.K8s: {
+			version.MustParse("v1.39"): `query GetWorkloadLiveTrafficLearning($namespace: String!, $kind: K8sResourceKind!, $name: String!) {
+    workloads(filter: { namespace: $namespace, kind: $kind, name: $name }) {
+      containers {
+        containerName
+        urlTemplatization {
+          templatization {
+            templates {
+              template
+              examples
+              notes
+              actionId
+              actionName
+              managedBy
+            }
+            patternBasedTemplatization {
+              disabled
+              skipPolicy {
+                skipForNonSuccessCodes
+                skipHttpStatusCodes
+              }
+            }
+          }
+          liveTrafficLearning {
+            unmatchedServerPaths {
+              path
+              count
+            }
+            unmatchedClientPaths {
+              path
+              count
+            }
+            serverRecommendedRules {
+              template
+              reason
+              segments {
+                templateName
+                static
+                certainty
+                examples
+              }
+            }
+            clientRecommendedRules {
+              template
+              reason
+              segments {
+                templateName
+                static
+                certainty
+                examples
+              }
+            }
+          }
+        }
+      }
+    }
   }`,
 		},
 	},
@@ -4011,9 +4199,12 @@ var AllRemoteQueries = []*Operation{
 	&GET_EFFECTIVE_CONFIG,
 	&GET_GATEWAY_INFO,
 	&GET_GATEWAY_PODS,
+	&GET_GO_OFFSETS,
+	&GET_INSTRUMENTATION_AGENTS,
 	&GET_INSTRUMENTATION_RULES,
 	&GET_INSTRUMENTATION_RULE_TYPES,
 	&GET_K8S_MANIFEST,
+	&GET_LIVE_TRAFFIC_LEARNING,
 	&GET_METRICS,
 	&GET_NAMESPACES_WITH_SOURCES,
 	&GET_NAMESPACES_WITH_WORKLOADS,

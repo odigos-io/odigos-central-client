@@ -14,6 +14,63 @@ import (
 	"github.com/odigos-io/odigos-central-client/version"
 )
 
+// CHECK_GO_OFFSETS_UPDATES is a remote (cluster-scoped) GraphQL operation. Its document
+// varies by proxy platform type and Odigos version; use Operation.Pick to
+// select the right variant for a given proxy.
+var CHECK_GO_OFFSETS_UPDATES = Operation{
+	Name: "CHECK_GO_OFFSETS_UPDATES",
+	Variants: map[platform.Type]map[version.Version]string{
+		platform.K8s: {
+			version.MustParse("v1.38"): `mutation CheckGoOffsetsUpdates($content: String!) {
+    checkGoOffsetsUpdates(content: $content) {
+      hasUpdates
+      currentTimestamp
+      proposedTimestamp
+      mods {
+        module
+        isNew
+        isRemoved
+        minVersion
+        maxVersion
+        minorVersions {
+          minorVersion
+          isNew
+          isRemoved
+          versions {
+            version
+            isNew
+            isRemoved
+          }
+        }
+      }
+    }
+  }`,
+		},
+	},
+}
+
+// CONFIGURE_PROFILING_CACHE is a remote (cluster-scoped) GraphQL operation. Its document
+// varies by proxy platform type and Odigos version; use Operation.Pick to
+// select the right variant for a given proxy.
+var CONFIGURE_PROFILING_CACHE = Operation{
+	Name: "CONFIGURE_PROFILING_CACHE",
+	Variants: map[platform.Type]map[version.Version]string{
+		platform.K8s: {
+			version.MustParse("v1.33"): `mutation ConfigureProfilingCache($slotTTLSeconds: Int!) {
+    configureProfilingCache(slotTTLSeconds: $slotTTLSeconds) {
+      activeKeys
+      keysWithData
+      totalBytesUsed
+      slotMaxBytes
+      maxSlots
+      maxTotalBytesBudget
+      slotTtlSeconds
+    }
+  }`,
+		},
+	},
+}
+
 // CREATE_ACTION is a remote (cluster-scoped) GraphQL operation. Its document
 // varies by proxy platform type and Odigos version; use Operation.Pick to
 // select the right variant for a given proxy.
@@ -448,6 +505,79 @@ var CREATE_INSTRUMENTATION_RULE = Operation{
 	Name: "CREATE_INSTRUMENTATION_RULE",
 	Variants: map[platform.Type]map[version.Version]string{
 		platform.K8s: {
+			version.MustParse("v1.40"): `mutation CreateInstrumentationRule($instrumentationRule: InstrumentationRuleInput!) {
+    createInstrumentationRule(instrumentationRule: $instrumentationRule) {
+      type
+      ruleId
+      ruleName
+      notes
+      disabled
+      mutable
+      profileName
+      managedBy
+      sourcesScopes { sources { namespace kind name }
+  namespaces
+  languages }
+      payloadCollection {
+        httpRequest {
+          mimeTypes
+          maxPayloadLength
+          dropPartialPayloads
+        }
+        httpResponse {
+          mimeTypes
+          maxPayloadLength
+          dropPartialPayloads
+        }
+        dbQuery {
+          maxPayloadLength
+          dropPartialPayloads
+        }
+        messaging {
+          maxPayloadLength
+          dropPartialPayloads
+        }
+      }
+      codeAttributes {
+        column
+        filePath
+        function
+        lineNumber
+        namespace
+        stacktrace
+      }
+      headersCollection {
+        headerKeys
+      }
+      customInstrumentations {
+        golang {
+          packageName
+          functionName
+          receiverName
+          receiverMethodName
+        }
+        java {
+          methodName
+          className
+        }
+        php {
+          className
+          functionName
+        }
+      }
+      kernelTraces {
+        filesystem {
+          enabled
+        }
+        subprocesses {
+          recordCommandArgs
+        }
+        cpuDelay {
+          enabled
+        }
+      }
+    }
+  }`,
 			version.MustParse("v1.38"): `mutation CreateInstrumentationRule($instrumentationRule: InstrumentationRuleInput!) {
     createInstrumentationRule(instrumentationRule: $instrumentationRule) {
       type
@@ -847,6 +977,24 @@ var DELETE_NOISY_OPERATION_RULE = Operation{
 	},
 }
 
+// DISABLE_SOURCE_PROFILING is a remote (cluster-scoped) GraphQL operation. Its document
+// varies by proxy platform type and Odigos version; use Operation.Pick to
+// select the right variant for a given proxy.
+var DISABLE_SOURCE_PROFILING = Operation{
+	Name: "DISABLE_SOURCE_PROFILING",
+	Variants: map[platform.Type]map[version.Version]string{
+		platform.K8s: {
+			version.MustParse("v1.25"): `mutation DisableSourceProfiling($namespace: String!, $kind: String!, $name: String!) {
+    disableSourceProfiling(namespace: $namespace, kind: $kind, name: $name) {
+      status
+      sourceKey
+      activeSlots
+    }
+  }`,
+		},
+	},
+}
+
 // ENABLE_SOURCE_PROFILING is a remote (cluster-scoped) GraphQL operation. Its document
 // varies by proxy platform type and Odigos version; use Operation.Pick to
 // select the right variant for a given proxy.
@@ -894,6 +1042,20 @@ var PERSIST_SOURCES = Operation{
 		platform.K8s: {
 			version.MustParse("v1.20"): `mutation PersistSources($sources: [PersistNamespaceSourceInput!]!) {
     persistK8sSources(sources: $sources)
+  }`,
+		},
+	},
+}
+
+// PERSIST_SOURCES_AND_NAMESPACES is a remote (cluster-scoped) GraphQL operation. Its document
+// varies by proxy platform type and Odigos version; use Operation.Pick to
+// select the right variant for a given proxy.
+var PERSIST_SOURCES_AND_NAMESPACES = Operation{
+	Name: "PERSIST_SOURCES_AND_NAMESPACES",
+	Variants: map[platform.Type]map[version.Version]string{
+		platform.K8s: {
+			version.MustParse("v1.40"): `mutation PersistSourcesAndNamespaces($sources: [PersistNamespaceSourceInput!]!, $namespaces: [PersistNamespaceItemInput!]) {
+    persistK8sSources(sources: $sources, namespaces: $namespaces)
   }`,
 		},
 	},
@@ -1326,6 +1488,20 @@ var UPDATE_DESTINATION = Operation{
 	},
 }
 
+// UPDATE_GO_OFFSETS is a remote (cluster-scoped) GraphQL operation. Its document
+// varies by proxy platform type and Odigos version; use Operation.Pick to
+// select the right variant for a given proxy.
+var UPDATE_GO_OFFSETS = Operation{
+	Name: "UPDATE_GO_OFFSETS",
+	Variants: map[platform.Type]map[version.Version]string{
+		platform.K8s: {
+			version.MustParse("v1.38"): `mutation UpdateGoOffsets($content: String!) {
+    updateGoOffsets(content: $content)
+  }`,
+		},
+	},
+}
+
 // UPDATE_HIGHLY_RELEVANT_OPERATION_RULE is a remote (cluster-scoped) GraphQL operation. Its document
 // varies by proxy platform type and Odigos version; use Operation.Pick to
 // select the right variant for a given proxy.
@@ -1365,6 +1541,79 @@ var UPDATE_INSTURMENTATION_RULE = Operation{
 	Name: "UPDATE_INSTURMENTATION_RULE",
 	Variants: map[platform.Type]map[version.Version]string{
 		platform.K8s: {
+			version.MustParse("v1.40"): `mutation UpdateInstrumentationRule($ruleId: ID!, $instrumentationRule: InstrumentationRuleInput!) {
+    updateInstrumentationRule(ruleId: $ruleId, instrumentationRule: $instrumentationRule) {
+      type
+      ruleId
+      ruleName
+      notes
+      disabled
+      mutable
+      profileName
+      managedBy
+      sourcesScopes { sources { namespace kind name }
+  namespaces
+  languages }
+      payloadCollection {
+        httpRequest {
+          mimeTypes
+          maxPayloadLength
+          dropPartialPayloads
+        }
+        httpResponse {
+          mimeTypes
+          maxPayloadLength
+          dropPartialPayloads
+        }
+        dbQuery {
+          maxPayloadLength
+          dropPartialPayloads
+        }
+        messaging {
+          maxPayloadLength
+          dropPartialPayloads
+        }
+      }
+      codeAttributes {
+        column
+        filePath
+        function
+        lineNumber
+        namespace
+        stacktrace
+      }
+      headersCollection {
+        headerKeys
+      }
+      customInstrumentations {
+        golang {
+          packageName
+          functionName
+          receiverName
+          receiverMethodName
+        }
+        java {
+          methodName
+          className
+        }
+        php {
+          className
+          functionName
+        }
+      }
+      kernelTraces {
+        filesystem {
+          enabled
+        }
+        subprocesses {
+          recordCommandArgs
+        }
+        cpuDelay {
+          enabled
+        }
+      }
+    }
+  }`,
 			version.MustParse("v1.38"): `mutation UpdateInstrumentationRule($ruleId: ID!, $instrumentationRule: InstrumentationRuleInput!) {
     updateInstrumentationRule(ruleId: $ruleId, instrumentationRule: $instrumentationRule) {
       type
@@ -1735,6 +1984,8 @@ var UPDATE_TOKEN = Operation{
 // file. Compatibility-matrix tests iterate over it to assert version-floor
 // invariants across the entire generated surface.
 var AllRemoteMutations = []*Operation{
+	&CHECK_GO_OFFSETS_UPDATES,
+	&CONFIGURE_PROFILING_CACHE,
 	&CREATE_ACTION,
 	&CREATE_COST_REDUCTION_RULE,
 	&CREATE_DESTINATION,
@@ -1748,9 +1999,11 @@ var AllRemoteMutations = []*Operation{
 	&DELETE_HIGHLY_RELEVANT_OPERATION_RULE,
 	&DELETE_INSTURMENTATION_RULE,
 	&DELETE_NOISY_OPERATION_RULE,
+	&DISABLE_SOURCE_PROFILING,
 	&ENABLE_SOURCE_PROFILING,
 	&PERSIST_NAMESPACES,
 	&PERSIST_SOURCES,
+	&PERSIST_SOURCES_AND_NAMESPACES,
 	&RECOVER_FROM_ROLLBACK,
 	&RESET_LOCAL_UI_CONFIG_TO_FACTORY_DEFAULTS,
 	&RESTART_POD,
@@ -1760,6 +2013,7 @@ var AllRemoteMutations = []*Operation{
 	&UPDATE_COST_REDUCTION_RULE,
 	&UPDATE_DATA_STREAM,
 	&UPDATE_DESTINATION,
+	&UPDATE_GO_OFFSETS,
 	&UPDATE_HIGHLY_RELEVANT_OPERATION_RULE,
 	&UPDATE_INSTURMENTATION_RULE,
 	&UPDATE_LOCAL_UI_CONFIG,
