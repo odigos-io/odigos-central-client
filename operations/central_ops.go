@@ -166,6 +166,29 @@ const GET_ALL_CLUSTER_SNAPSHOTS = `query GetAllClusterSnapshots {
     }
   }`
 
+// GET_ALL_GROUP_ROLE_MAPPINGS is a central-scoped GraphQL operation. It does not vary by
+// proxy version because it targets Central directly.
+const GET_ALL_GROUP_ROLE_MAPPINGS = `query GetAllGroupRoleMappings {
+    azure: groupRoleMappings(providerId: AZURE) {
+      ...GroupRoleMappingFields
+    }
+    okta: groupRoleMappings(providerId: OKTA) {
+      ...GroupRoleMappingFields
+    }
+    google: groupRoleMappings(providerId: GOOGLE) {
+      ...GroupRoleMappingFields
+    }
+  }
+
+  fragment GroupRoleMappingFields on GroupRoleMapping {
+    id
+    providerId
+    claimName
+    claimValue
+    role
+    displayName
+  }`
+
 // GET_CLOUD_CONNECTOR_PROVIDERS is a central-scoped GraphQL operation. It does not vary by
 // proxy version because it targets Central directly.
 const GET_CLOUD_CONNECTOR_PROVIDERS = `query GetCloudConnectorProviders {
@@ -175,6 +198,9 @@ const GET_CLOUD_CONNECTOR_PROVIDERS = `query GetCloudConnectorProviders {
       bootstrapRegion {
         defaultRegion
         supportedRegions
+      }
+      destinationHeaders {
+        secretStore
       }
       connectorFields {
         name
@@ -278,11 +304,24 @@ const GET_COMPUTE_PLATFORMS = `query GetComputePlatforms {
       graphqlSchemaVersion
       type
       status
+      statusMessage
       collectors {
         type
         management
         deployment
         mode
+      }
+      cloudConnectorPermissions {
+        principal
+        verified
+        message
+        missing
+        restricted
+        optional
+        extrasChecked
+        extra
+        broad
+        checkedAt
       }
       connectedAt
       lastSeenAt
@@ -410,6 +449,7 @@ const GET_USERS = `query GetUsers {
       username
       role
       needsPasswordChange
+      sso
     }
   }`
 
